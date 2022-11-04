@@ -1,5 +1,5 @@
 using KmerGMA
-using Test
+using Test, BioSequences, FASTX
 
 #testing variables
 tf = "test/Alp_V_ref.fasta"
