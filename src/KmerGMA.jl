@@ -1,6 +1,6 @@
 module KmerGMA
     using Plots, BioSequences, FASTX, Distances, #WebBlast, Statistics,
-    ProgressMeter, #StringDistances, StatsBase, StatsPlots, DataFrames
+    ProgressMeter #StringDistances, StatsBase, StatsPlots, DataFrames
     include("simpleExplore.jl")
     include("ExactMatch.jl")
     include("RefGen.jl")
