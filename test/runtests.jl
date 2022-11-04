@@ -2,7 +2,7 @@ using KmerGMA
 using Test, BioSequences, FASTX
 
 #testing variables
-tf = "test/Alp_V_ref.fasta"
+tf = "Alp_V_ref.fasta"
 KD = Dict(dna"T" => 3, dna"A" => 1, dna"G" => 4, dna"N" => 5, dna"C" => 2)
 kf = [0.0, 0.0, 1.0, 2.0, 0.0, 1.0, 0.0, 0.0, 0.0,
 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
