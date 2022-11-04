@@ -1,71 +1,12 @@
-"""
-TO DO/TO ASK LIST:
-
-        -> big issue: the function doesnt account for overlap between records in a reader. can be implemented in the future tho.
-        -> make a threshold predictor by taking averages and going 1-2 SD down. although for k=6, usually around SED = 150 - 190 works ok?
-        -> There can be a currnt minimum function that returns it so there doesnt have to be so many repeated code chunks of the first 2 operations
-            -> alternative approach is to take any sequence in reference and compare it to the reference KFV and take that as average.
-        -> the buffer thing needs to be fixed if it exceeds
-        -> implement progress bar.
-        -> make plotting function for where the matches were
-        -> keep track of global position with a count variable.
-
-        -> potentially changing the int type to unsigned might speed up the code
-
-        -> next step in pipeline is to take the buffers, align, and trim off excess ends and then unalign
-        -> then webBLAST
-
-        -> theres also a potentially completely unessecary step to cluster similar reference sequences together.
-
-        -> N stuff:
-            -> N THRESHOLD!!! (interger and truncated percentage!) maybe. probably a bad idea actually.
-            -> make a function tha detects start and end points of Ns in the genome and plot it. Just to see if it is covering ay important regions.
-        -> implement bitwise operations & euclidian dist to speed up code (probably ditching)
-        -> write a master function that does this from beginning to end in one super long and slow step.
-        -> FOR PAPER: CHECK DIFFERENT K VALUES AND EFFECTIVENESS/IF IT EXISTS. i THINK PROBABLY 4-6 IS THE OPTIMAL RATIO BUT USE IT TO SEE SPARSITY AND MATCHES ACCURACY.
-
-        ->and ofc compare to state of the art HMM models. try to one up them on just speed
-
-        -> in final funcition have an argument omit::Bool to check whether or not to omit exact matches.
-
-        -> !!!! COMPARE THIS METHOD WITH EXACTMATCH.JL AT Euclidian distance 0.
-
-        -> implement phylogeny stuff like ben.
-            -> on paper, put phylogeny paired with eucdist
-
-        -> Implement golden formula later.
-
-        -> generate global kmer dict consts at the start. can actually utilize the genKmers()
-           function cut off the same kmer.
-
-        ->!!!!!!!!!!!!!
-            TEST EACH ALPACA SEQ AGAINST AVERAGE IMGT REF!!! IT MIGHT BE LIKE 18 ISH!!!!
-
-        -> make it possible to generate reference with an alignment as well
-        -> For the future, in the eucvector you should be able to see how far it is from the minimum
-        -> make jupyter notebook pipeline that is eaier to showcase, If I have time, showcase in real time in the presentation
-
-In Progress:
-        -> the dictionary order as of rn is Sequence => interger. Should it be reversed for the freq table?
-        -> use IMGT fasta file fownloads to make the frequency table. calculate the kmer distribution for each sequence and average the kmer distributions. Generate the data and store!!!
-        -> implement rev in some kmer count functions in order to reverse dictionary key order.
-        -> Kmer spectra for the future.
-"""
-function toDoList()
-    println("type ?toDoList in REPL")
-end
-
 #using Pkg
 #Pkg.add(PackageSpec(name="NextGenSeqUtils", rev="Missing-LongCharSeq-fix", url = "https://github.com/MurrellGroup/NextGenSeqUtils.jl.git"))
 
 #using BioSequences, FASTX, Plots, ProgressMeter, Distances, PkgTemplates, Pkg, DataFrames, Distances, DelimitedFiles#, Distributed
 
-
 #implementation of functions needed for the first step of the optimized method
 #frequency vector with no actual kmer information. Should only be ran once in the master function
 #order matters. goes from left to right in the order of the kmer.
 #it is O(n) assuming hashing is almost always O(1).
- #reference generation depends on the function kmerFreq!
 
 #faster kmer frequency with some given imputs.
  function fasterKF(k::Int64, seq::LongSequence{DNAAlphabet{4}}, KD::Dict{LongSequence{DNAAlphabet{4}}, Int64}, rv::Vector{Float64})
@@ -429,3 +370,60 @@ export writeQueryMatch
 #scanning all of vicpac. i should put a progress bar.
 #@time writeQueryMatch(6,open(FASTA.Reader,VicPac),V3NRef,genKmers(6,withN=true),350,289,50,"VicPacScan/vicpacscan.fasta")
 #@time didnt work but this run started at around 7:06 and ended at 7:23 so it took 17 minutes ish.
+
+"""
+TO DO/TO ASK LIST:
+
+        -> big issue: the function doesnt account for overlap between records in a reader. can be implemented in the future tho.
+        -> make a threshold predictor by taking averages and going 1-2 SD down. although for k=6, usually around SED = 150 - 190 works ok?
+        -> There can be a currnt minimum function that returns it so there doesnt have to be so many repeated code chunks of the first 2 operations
+            -> alternative approach is to take any sequence in reference and compare it to the reference KFV and take that as average.
+        -> the buffer thing needs to be fixed if it exceeds
+        -> implement progress bar.
+        -> make plotting function for where the matches were
+        -> keep track of global position with a count variable.
+
+        -> potentially changing the int type to unsigned might speed up the code
+
+        -> next step in pipeline is to take the buffers, align, and trim off excess ends and then unalign
+        -> then webBLAST
+
+        -> theres also a potentially completely unessecary step to cluster similar reference sequences together.
+
+        -> N stuff:
+            -> N THRESHOLD!!! (interger and truncated percentage!) maybe. probably a bad idea actually.
+            -> make a function tha detects start and end points of Ns in the genome and plot it. Just to see if it is covering ay important regions.
+        -> implement bitwise operations & euclidian dist to speed up code (probably ditching)
+        -> write a master function that does this from beginning to end in one super long and slow step.
+        -> FOR PAPER: CHECK DIFFERENT K VALUES AND EFFECTIVENESS/IF IT EXISTS. i THINK PROBABLY 4-6 IS THE OPTIMAL RATIO BUT USE IT TO SEE SPARSITY AND MATCHES ACCURACY.
+
+        ->and ofc compare to state of the art HMM models. try to one up them on just speed
+
+        -> in final funcition have an argument omit::Bool to check whether or not to omit exact matches.
+
+        -> !!!! COMPARE THIS METHOD WITH EXACTMATCH.JL AT Euclidian distance 0.
+
+        -> implement phylogeny stuff like ben.
+            -> on paper, put phylogeny paired with eucdist
+
+        -> Implement golden formula later.
+
+        -> generate global kmer dict consts at the start. can actually utilize the genKmers()
+           function cut off the same kmer.
+
+        ->!!!!!!!!!!!!!
+            TEST EACH ALPACA SEQ AGAINST AVERAGE IMGT REF!!! IT MIGHT BE LIKE 18 ISH!!!!
+
+        -> make it possible to generate reference with an alignment as well
+        -> For the future, in the eucvector you should be able to see how far it is from the minimum
+        -> make jupyter notebook pipeline that is eaier to showcase, If I have time, showcase in real time in the presentation
+
+In Progress:
+        -> the dictionary order as of rn is Sequence => interger. Should it be reversed for the freq table?
+        -> use IMGT fasta file fownloads to make the frequency table. calculate the kmer distribution for each sequence and average the kmer distributions. Generate the data and store!!!
+        -> implement rev in some kmer count functions in order to reverse dictionary key order.
+        -> Kmer spectra for the future.
+"""
+function toDoList()
+    println("type ?toDoList in REPL")
+end

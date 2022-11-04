@@ -5,5 +5,5 @@ module KmerGMA
     include("RefGen.jl")
     include("GMA.jl")
     include("API.jl")
-    include("BLAST.jl")
+    #include("BLAST.jl")
 end
