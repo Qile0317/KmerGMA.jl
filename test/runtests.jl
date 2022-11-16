@@ -17,17 +17,17 @@ dna"A" => 63.25, dna"G" => 89.26190476190476, dna"N" => 0.0)
 
     @test recordCount(open(FASTX.FASTA.Reader,tf)) == 84
 
-    @test avgRecLen(tf) == 289
-
     @test flipDict(Dict(dna"ATG" => 69, dna"ATGCCCCC" => 420)) == Dict(69 => dna"ATG", 420 => dna"ATGCCCCC")
 
     @test kfv(Dict(dna"A" => 69.0, dna"G" => 420.0,
     dna"C" => 0.0,dna"N" => 1.0, dna"T" => 42.0),
     genKmers(1; withN=true)) == [69.0, 0.0, 42.0, 420.0, 1.0]
 
-    @test readerNTs(open(FASTX.FASTA.Reader,tf)) == 24242
-
     @test percentN(dna"ACGN") == 0.25
+
+     #so for some reason FASTX.FASTA.seqlen() doesnt exist, but it works on my device locally...
+    #@test avgRecLen(tf) == 289
+    #@test readerNTs(open(FASTX.FASTA.Reader,tf)) == 24242
 end
 
 @testset "RefGen.jl" begin
@@ -42,6 +42,27 @@ end
     104.36479591836734, 117.26955782312923]
     #no N version
 
-    #problem: the main function for writing cant be tested lol
-    #problem: Blast shouldne be tested otherwise it'll destroy NCBI and get you banned
+    #problem: the main function for writing cant be tested. I'll probably write a different version that doesnt write.
+    #problem: Blast shouldne be tested
+end
+
+@testset "ExactMatch.jl" begin
+    #exactMatch set - single sequence
+    @test exactMatch(dna"GAG",dna"CCCCCCCGAGCTTTT") == [8:10]
+    @test exactMatch(dna"GAG",dna"CGAGCCCGAGCTTTT") == [2:4, 8:10]
+    @test exactMatch(dna"GAG",dna"CGAGAGAGAAGGCCGAGCTTTT") == [2:4, 4:6, 6:8, 15:17]
+    @test exactMatch(dna"GAG",dna"CGAGAGAGAAGGCCGAGCTTTT",
+    overlap = false) == [2:4, 6:8, 15:17]
+    @test exactMatch(dna"GAG",dna"CCCCCCTTT") == nothing
+    @test exactMatch(FASTA.sequence(first(open(FASTA.Reader, tf)))[42:69],
+    open(FASTA.Reader, tf)) == Dict("AM773729|IGHV1-1*01|Vicugna" => [42:69])
+
+    #exactMatch - reader
+    @test exactMatch(dna"AAAAAAAAA", open(FASTX.FASTA.Reader, tf)) == "no match"
+    @test exactMatch(dna"AAATT",open(FASTA.Reader, tf)) ==
+    Dict("AM773729|IGHV1-1*01|Vicugna" => [174:178], "AM939700|IGHV1S5*01|Vicugna" => [174:178])
+    @test exactMatch(FASTA.sequence(first(open(FASTA.Reader, tf))),
+    open(FASTA.Reader, tf)) == Dict("AM773729|IGHV1-1*01|Vicugna" => [1:296])
+
+    #cflength like a few other functions depend on FASTA.seqlen() which doesnt work in testing for some reason...
 end

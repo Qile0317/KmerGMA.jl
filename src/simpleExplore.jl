@@ -134,7 +134,7 @@ export kmerFreq
 
 export genKmers, sixMerNDict
 
-#Functions to do with lengths and counts of sequences/assemblies: (work in progress)
+#Functions to do with lengths and counts of sequences/assemblies, not that useful
 function seqLenV(reader::FASTX.FASTA.Reader{})
     lengths = Int64[]
     for record in reader

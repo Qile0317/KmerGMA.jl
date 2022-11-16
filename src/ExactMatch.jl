@@ -10,7 +10,7 @@
 ## I can also make it return a dictionary.
 #ig also its possible to make it write into a file
 """
-firstMatch(reader,query)
+    firstMatch(reader,query)
 
 Scans through a FASTA,Reader object to find the FIRST occurence of the query(dna longsequence) and prints the results to the REPL.
 
@@ -60,7 +60,9 @@ function FindAllOverlap(q::ExactSearchQuery{typeof(isequal), LongSequence{DNAAlp
 end
 
 """
-exactMatch(query,seq,overlap)
+    exactMatch(query::LongSequence{DNAAlphabet{4}},
+               seq::LongSequence{DNAAlphabet{4}},
+               overlap::Bool = true)
 
 Finds all exact matches to a query sequence(dna longsequence) in the given genome assembly as a reader object(seq) or single sequence
 
@@ -85,12 +87,12 @@ function exactMatch(query::LongSequence{DNAAlphabet{4}}, Reader::FASTX.FASTA.Rea
     identify = Dict{String,Vector{UnitRange{Int64}}}()
     for record in Reader
         seq = FASTA.sequence(record)
-        RM = RecordMatch(q,seq,overlap)
+        RM = exactMatch(query,seq; overlap=overlap)
         if !isnothing(RM)
             identify[FASTA.identifier(record)] = RM
         end
     end
-    if identify == Dict{String, Vector{UnitRange{Int64}}}
+    if identify == Dict{String, Vector{UnitRange{Int64}}}()
         return "no match"
     else
         return identify
@@ -100,15 +102,15 @@ end
 
 export exactMatch
 
-#@time matchess = GenomeMatch(query, path)
+#the algo is nothing fancy, it just uses BioSequences's exactmatch function. It'll be interesting comparing it to the GMA at SED = 0
 
 ##
-#rember:
+
 #FASTX.FASTA.seqlen(firstr) # 0.000001 seconds
-#is much faster.
+#is much faster than other methods
 
 """
-cflength(reader)
+    cflength(reader)
 
 function to record and store cumulative lengths of the BEGINNING of each record in a dictionary
 for example: for the reader
@@ -157,7 +159,7 @@ function PltQueryMatches(matches::Dict{String, Vector{UnitRange{Int64}}}, rlengt
 end
 
 """
-PlotsQueryMatches(matches, reader)
+    PlotQueryMatches(matches, reader)
 
 matches is the dictionary returned by exactMatch() from the original reader
 
@@ -172,9 +174,13 @@ end
 export PlotQueryMatches
 
 """
-function that does everything by finding matches AND plotting. doesnt work lol.
+    MatchPlot(q::LongSequence{DNAAlphabet{4}},
+    Reader::FASTX.FASTA.Reader{};
+    overlap::Bool)
+    
+function that does everything by finding matches AND plotting. doesnt work atm.
 """
-function MatchPlot(q::ExactSearchQuery{typeof(isequal), LongSequence{DNAAlphabet{4}}}, Reader::FASTX.FASTA.Reader{}, overlap::Bool)
+function MatchPlot(q::LongSequence{DNAAlphabet{4}}, LongSequence{DNAAlphabet{4}}}, Reader::FASTX.FASTA.Reader{}; overlap::Bool)
     matches = exactMatch(q,reader,overlap)
     SlowerPQM(matches,reader)
     return matches
