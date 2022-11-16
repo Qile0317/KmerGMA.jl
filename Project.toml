@@ -16,6 +16,10 @@ ProgressMeter = "92933f4c-e287-5a05-a399-4b506db050ca"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
+BioSequences = "3"
+Distances = "0.10"
+FASTX = "2"
+ProgressMeter = "1"
 julia = "1"
 
 [extras]

@@ -26,8 +26,8 @@ dna"A" => 63.25, dna"G" => 89.26190476190476, dna"N" => 0.0)
     @test percentN(dna"ACGN") == 0.25
 
      #so for some reason FASTX.FASTA.seqlen() doesnt exist, but it works on my device locally...
-    #@test avgRecLen(tf) == 289
-    #@test readerNTs(open(FASTX.FASTA.Reader,tf)) == 24242
+    @test avgRecLen(tf) == 289
+    @test readerNTs(open(FASTX.FASTA.Reader,tf)) == 24242
 end
 
 @testset "RefGen.jl" begin
