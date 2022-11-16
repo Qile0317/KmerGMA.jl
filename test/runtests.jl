@@ -40,6 +40,8 @@ end
     @test queryMatch(1,first(open(FASTX.FASTA.Reader,tf)),KFV,KD,289) == [71.2219387755102,
     84.10289115646258, 84.10289115646258, 84.10289115646258, 80.1267006802721,
     104.36479591836734, 117.26955782312923]
+    #no N version
+
     #problem: the main function for writing cant be tested lol
     #problem: Blast shouldne be tested otherwise it'll destroy NCBI and get you banned
 end

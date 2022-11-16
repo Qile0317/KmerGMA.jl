@@ -37,7 +37,7 @@ function genRef(k::Int64, path::String, kmerDict::Dict{LongSequence{DNAAlphabet{
     for key in kmerDict
         answer[first(key)] = 0.0
     end
-    reader = open(FASTA.Reader,path)
+    reader = open(FASTA.Reader,path) #just in case
     for record in reader
         seq = FASTA.sequence(record)
         for i in 1:length(seq)-k+1

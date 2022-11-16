@@ -16,7 +16,7 @@ The ref argument is a reader of reference FASTA sequences. fileloc is simply the
 - I def need to incorporate option to choose if a plot is wanted instead of SEDs
 """
 function findGenes(genome::FASTX.FASTA.Reader,
-   ref::FASTX.FASTA.Reader, fileloc::String = "";
+   ref::FASTX.FASTA.Reader, fileloc::String;
    k::Int64 = 6, windowsize::Int64 = 0,
    print::Bool = false, thr::Int64 = 0,
    buffer::Int64 = 50, BLAST = true) #printing is ac pretty dumb
@@ -37,12 +37,13 @@ function findGenes(genome::FASTX.FASTA.Reader,
     end
 
     #genome mining
+    #this is being completely revamped, I need to remmeber to update.
     writeQueryMatch(k,genome,refKFD,KD,thr,windowsize,buff,fileloc)
 
-    if BLAST
-      blastseq = eqBLAST(output) #blasting
-      return blastseq #unfinished
-   end
+    #if BLAST
+      #blastseq = eqBLAST(output) #blasting
+      #return blastseq #unfinished
+   #end
 end
 
 export findGenes

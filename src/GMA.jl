@@ -4,20 +4,14 @@
 #using BioSequences, FASTX, Plots, ProgressMeter, Distances, PkgTemplates, Pkg, DataFrames, Distances, DelimitedFiles#, Distributed
 
 #implementation of functions needed for the first step of the optimized method
-#frequency vector with no actual kmer information. Should only be ran once in the master function
-#order matters. goes from left to right in the order of the kmer.
-#it is O(n) assuming hashing is almost always O(1).
-
-#faster kmer frequency with some given imputs.
- function fasterKF(k::Int64, seq::LongSequence{DNAAlphabet{4}}, KD::Dict{LongSequence{DNAAlphabet{4}}, Int64}, rv::Vector{Float64})
-     for i in 1:length(seq)-k+1
-         subseq = seq[i:i+k-1]
-         if get(KD,subseq,nothing) != nothing
-             rv[KD[subseq]] += 1
-         end
-     end
-     return rv
- end
+#faster kmer frequency from scratch with some given imputs, used in GMA. Its half the speed of a bitwise version. Replacing with the bitwise version can save almost a minute.
+function fasterKF(k::Int64, seq::LongSequence{DNAAlphabet{4}}, KD::Dict{LongSequence{DNAAlphabet{4}}, Int64}, rv::Vector{Float64})
+    for i in 1:length(seq)-k+1
+        subseq = @view seq[i:i+k-1]
+        rv[KD[subseq]] += 1
+    end
+    return rv
+end
 
 #this version just treates N as another nucleotide. it actually seems to work well as Ns incur a high sqeuclidean dist.
 function queryMatch(k::Int64, record::FASTX.FASTA.Record, IMGTref::Dict{LongSequence{DNAAlphabet{4}}, Float64}, kmerDict::Dict{LongSequence{DNAAlphabet{4}}, Int64}, windowsize::Int64 = 0)
@@ -184,6 +178,7 @@ end
                     path::String = nothing)
 
 A slighty slower query match that writes to a fasta file for a SINGLE FASTA.Record. An optimized version is used in the actual GMA.
+    Its actually really unoptimized.
 """
 function writeQueryMatch(k::Int64, record::FASTX.FASTA.Record, IMGTref::Dict{LongSequence{DNAAlphabet{4}}, Float64}, kmerDict::Dict{LongSequence{DNAAlphabet{4}}, Int64},  thr::Union{Float64, Int64} = 180.0,
     windowsize::Int64 = 0, buff::Int64 = 50, path::String = nothing)
@@ -246,36 +241,43 @@ end
 
 export writeQueryMatch
 
-#faster one, essential for GMA
-function writeQueryMatchN(k::Int64, record::FASTX.FASTA.Record,
-    IMGTrefVec::Vector{Float64},
+####################################################################
+#faster one for record, essential for GMA!!!!
+function gma(;
+    k::Int64,
+    record::FASTX.FASTA.Record,
+    refVec::Vector{Float64},
+    windowsize::Int64,
     kmerDict::Dict{LongSequence{DNAAlphabet{4}}, Int64},
-    thr::Union{Float64, Int64} = 180.0,
-    windowsize::Int64 = 0, buff::Int64 = 50, path::String = nothing;
-    rv::Vector{Float64}, thrbuff::String)
+    path::String,
+    thr::Float64,
+    buff::Int64,
+    rv::Vector{Float64},
+    thrbuff::String)
 
     #initial operations
     seq = FASTA.sequence(record)
-    curr = fasterKF(k,seq[1:windowsize],kmerDict,rv)
-    currSqrEuc = Distances.sqeuclidean(IMGTrefVec,curr)
+    @views curr = fasterKF(k,seq[1:windowsize],kmerDict,rv) #Theres an even faster way with unsigned ints and bits
+    currSqrEuc = Distances.sqeuclidean(refVec,curr)
 
-    CMI = 1
+    #defining some variables needed later
+    CMI = 2
     stop = true
     currminim = currSqrEuc
 
-    for i in 2:(length(seq)-windowsize)
+    for i in 1:(length(seq)-windowsize) #big change: starts from 1 so i dont need to -1 nymore
         #first operation
         #zeroth kmer
-        zerokInt = kmerDict[seq[i-1:i+k-2]] #unessecary lol
-        MinusOld = (IMGTrefVec[zerokInt]-curr[zerokInt])^2
+        @views zerokInt = kmerDict[seq[i:i+k-1]] #might be slightly faster to predefine
+        @views MinusOld = (refVec[zerokInt]-curr[zerokInt])^2
         curr[zerokInt] -= 1
-        MinusNew = (IMGTrefVec[zerokInt]-curr[zerokInt])^2
+        @views MinusNew = (refVec[zerokInt]-curr[zerokInt])^2
 
         #last kmer
-        KendInt = kmerDict[seq[i+windowsize-k+1:i+windowsize]]
-        PlusOld = (IMGTrefVec[KendInt]-curr[KendInt])^2
+        @views KendInt = kmerDict[seq[i+windowsize-k:i+windowsize-1]]
+        @views PlusOld = (refVec[KendInt]-curr[KendInt])^2
         curr[KendInt] += 1
-        PlusNew = (IMGTrefVec[KendInt]-curr[KendInt])^2
+        @views PlusNew = (refVec[KendInt]-curr[KendInt])^2
 
         #second operation.
         currSqrEuc += PlusNew + MinusNew - PlusOld - MinusOld
@@ -289,11 +291,17 @@ function writeQueryMatchN(k::Int64, record::FASTX.FASTA.Record,
             end
         else
             if stop == false #in future account for if buffer exceeds end or front
-                rec = FASTA.Record(FASTA.identifier(record), "| SED = "*string(currminim)[1:5]*" | Pos = "*string(CMI)*":"*string(CMI+windowsize)*thrbuff, seq[i-buff:i+windowsize-1+buff])
-                w = FASTA.Writer(open("VicPacScan/vicpacscan.fasta", "a"), width = 95) #v important that its "a"
-                write(w, rec)
-                close(w)
+                #create the record of the match
+                rec = FASTA.Record(FASTA.identifier(record),
+                "| SED = "*string(currminim)[1:5]*" | Pos = "*string(CMI+1)*":"*string(CMI+windowsize+1)*thrbuff,
+                seq[i-buff:i+windowsize-1+buff])
 
+                #write in the record to the file
+                FASTA.Writer(open(path, "a"), width = 95) do writer
+                    write(writer, rec) # a FASTA.Record
+                end
+
+                #reset
                 currminim = currSqrEuc
                 stop = true
             end
@@ -301,13 +309,25 @@ function writeQueryMatchN(k::Int64, record::FASTX.FASTA.Record,
     end
 end
 
-#testing. WORKS!!!
+#testing. problem: idk why but the sequence reading is not working...
 #d = KmerGMA.genKmers(6,withN=true)
 #r = KmerGMA.genRef(6,"C:/Users/lu_41/Desktop/Sofo Prok/VgeneData/AlpacaV.fasta",d)
 #ref = KmerGMA.kfv(r,d)
 #rV = fill(0.0,5^6)
-#red = open(FASTA.Reader,KmerGMA.LA)
-#@time KmerGMA.writeQueryMatchN(6,first(red),ref,d,200.0,289,50,"VicPacScan/vicpacscan.fasta"; rv = rV, thrbuff = "test")
+#red = open(FASTA.Reader,"C:/Users/lu_41/Desktop/Sofo Prok/VgeneData/genBank/A81.fasta")
+#inp = first(red)
+#using BenchmarkTools
+
+#gma(k=6, record=inp,refVec=ref,windowsize=289,
+#kmerDict=d,path="testing.fasta",thr=200.0,
+#buff=289, rv=rV, thrbuff="test")
+
+#FASTA.Writer(open("testing.fasta", "w"), width = 95) do writer
+#    write(writer, inp) # a FASTA.Record
+#    close(writer)
+#end
+
+#write(FASTA.Writer(open("testing.fasta", "a"), width = 95), inp)
 
 #using FlameGraphs, ProfileView, Profile
 #Profile.clear(); @profile kmerGMA.writeQueryMatchN(6,LA,ref,d,190.0,289,50,"VicPacScan/vicpacscan.fasta"; rv = rV, thrbuff = "test")
@@ -325,20 +345,19 @@ end
 
 The main implementation of the genome mining algorithm as described by the paper.
 
-- unfinished docs
+- The windowsize is a bit screwed, probably will have it deprecated?
 """
 function writeQueryMatch(k::Int64, reader::FASTX.FASTA.Reader,
     IMGTref::Dict{LongSequence{DNAAlphabet{4}}, Float64}, path::String,
-    kmerDict::Union{Dict{LongSequence{DNAAlphabet{4}}, Int64},Nothing} = nothing,
-    thr::Union{Float64, Int64} = 180.0, windowsize::Int64 = 0, buff::Int64 = 50)
+    windowsize::Int64 = 289; kmerDict::Dict{LongSequence{DNAAlphabet{4}}, Int64} = Dict(),
+    thr::Union{Float64, Int64} = 180.0, buff::Int64 = 50)
 
     #initializing nessecary arguments
-    RV = fill(0.0,length(kmerDict))
-
-    if windowsize == 0
-        windowsize = avgRecLen(IMGTref)
+    if kmerDict == Dict()
+        kmerDict = genKmers(k,withN=true)
     end
 
+    RV = fill(0.0,length(kmerDict))
     IMGTref = cvDicVec(IMGTref,kmerDict) #this is a bit dumb, its actually possible to make it generate a vector in the first place.
 
     if buff != 0
@@ -347,13 +366,10 @@ function writeQueryMatch(k::Int64, reader::FASTX.FASTA.Reader,
         thrBuf = " | thr = "*string(thr)
     end
 
-    if isnothing(kmerDict)
-        kmerDict = genKmers(k,withN=true)
-    end
-
     #Genome scanning by writing to a file
     for record in reader
-        writeQueryMatchN(k, record, IMGTref, kmerDict, thr, windowsize, buff, path;
+        writeQueryMatchN(k, record, IMGTref, windowsize,
+        kmerDict, thr, buff, path;
         rv = RV, thrbuff = thrBuf)
     end
     close(reader)
@@ -361,7 +377,11 @@ end
 
 export writeQueryMatch
 
-#@time writeQueryMatch(6,open(FASTA.Reader,LA),V3NRef,sixMerNDict,170.0,289,50,"VicPacScan/vicpacscan.fasta")
+#dic = KmerGMA.genKmers(6;withN=true)
+#ref = KmerGMA.genRef(6,"C:/Users/lu_41/Desktop/Sofo Prok/VgeneData/AlpacaV.fasta",dic)
+#@benchmark KmerGMA.writeQueryMatch(6,open(FASTA.Reader,
+#"C:/Users/lu_41/Desktop/Sofo Prok/VgeneData/genBankTest.fasta"),
+#ref,"src/testing.fasta"; kmerDict = dic)
 # 0.158826 seconds (1.94 M allocations: 97.667 MiB)
 
 #@time kmerGMA.writeQueryMatch(6,open(FASTA.Reader,LA),V3NRef,sixMerNDict,170.0,289,50,"VicPacScan/vicpacscan.fasta")
@@ -373,8 +393,7 @@ export writeQueryMatch
 
 """
 TO DO/TO ASK LIST:
-
-        -> big issue: the function doesnt account for overlap between records in a reader. can be implemented in the future tho.
+    -> BIG THING: In future I want to include D and J genes for comparison, and
         -> make a threshold predictor by taking averages and going 1-2 SD down. although for k=6, usually around SED = 150 - 190 works ok?
         -> There can be a currnt minimum function that returns it so there doesnt have to be so many repeated code chunks of the first 2 operations
             -> alternative approach is to take any sequence in reference and compare it to the reference KFV and take that as average.
@@ -418,7 +437,7 @@ TO DO/TO ASK LIST:
         -> For the future, in the eucvector you should be able to see how far it is from the minimum
         -> make jupyter notebook pipeline that is eaier to showcase, If I have time, showcase in real time in the presentation
 
-In Progress:
+    In Progress:
         -> the dictionary order as of rn is Sequence => interger. Should it be reversed for the freq table?
         -> use IMGT fasta file fownloads to make the frequency table. calculate the kmer distribution for each sequence and average the kmer distributions. Generate the data and store!!!
         -> implement rev in some kmer count functions in order to reverse dictionary key order.
