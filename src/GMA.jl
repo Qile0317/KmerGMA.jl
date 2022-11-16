@@ -4,14 +4,6 @@
 #using BioSequences, FASTX, Plots, ProgressMeter, Distances, PkgTemplates, Pkg, DataFrames, Distances, DelimitedFiles#, Distributed
 
 #implementation of functions needed for the first step of the optimized method
-#faster kmer frequency from scratch with some given imputs, used in GMA. Its half the speed of a bitwise version. Replacing with the bitwise version can save almost a minute.
-function fasterKF(k::Int64, seq::LongSequence{DNAAlphabet{4}}, KD::Dict{LongSequence{DNAAlphabet{4}}, Int64}, rv::Vector{Float64})
-    for i in 1:length(seq)-k+1
-        subseq = @view seq[i:i+k-1]
-        rv[KD[subseq]] += 1
-    end
-    return rv
-end
 
 #this version just treates N as another nucleotide. it actually seems to work well as Ns incur a high sqeuclidean dist.
 function queryMatch(k::Int64, record::FASTX.FASTA.Record, IMGTref::Dict{LongSequence{DNAAlphabet{4}}, Float64}, kmerDict::Dict{LongSequence{DNAAlphabet{4}}, Int64}, windowsize::Int64 = 0)

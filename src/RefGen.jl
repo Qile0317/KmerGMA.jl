@@ -63,15 +63,24 @@ Suggests an SED threshold, assuming most indexes do not match. Returns an interg
 
 Its extremely simple and just adds to a the SED of the first reference sequence's KFV to the actual reference KFV
 """
-function findthr(refseqs::Union{FASTX.FASTA.Reader, String}, refKFV::Dict{LongSequence{DNAAlphabet{4}}, Float64},
+function findthr(refseqs, refKFV::Dict{LongSequence{DNAAlphabet{4}}, Float64},
     KD::Dict{LongSequence{DNAAlphabet{4}}, Int64}; buff::Union{Int64,Float64} = 25)
-    if typeof(refseqs) == String
-        refseqs = open(FASTA.Reader, refseqs)
+        answer = 0 
+        if typeof(refseqs) == String
+            open(FASTX.FASTA.Reader, refseqs) do io
+                seq = FASTA.sequence(first(io))
+                answer = Distances.sqeuclidean(kmerFreq(
+                length(first(first(KD))),seq,KD),
+                kfv(refKFV,KD)) + buff
+            end
+        elseif typeof(refseqs) == FASTX.FASTA.Reader
+            seq = FASTA.sequence(first(refseqs))
+            answer = Distances.sqeuclidean(kmerFreq(length(first(first(KD))),seq,KD),
+            kfv(refKFV,KD)) + buff
+            close(refseqs)
+        end
+        return answer
     end
-    seq = FASTA.sequence(first(refseqs))
-    return Distances.sqeuclidean(kmerFreq(length(first(first(KD))),seq,KD),
-    kfv(refKFV,KD)) + buff
-end
 
 export findthr
 

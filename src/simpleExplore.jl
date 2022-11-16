@@ -11,144 +11,21 @@ These functions are the essential dependencies for other functions and algorithm
 #AlpacaV = "C:/Users/lu_41/Desktop/Sofo Prok/VgeneData/AlpacaV.fasta"
 #Merged25 = "C:/Users/lu_41/Desktop/Sofo Prok/VgeneData/Sequencer/Merged/BEN-25_S23_L001.vsearch_Merged.fastq"
 
-"""
-    genKmers(k::Int64,
-             Dictionary::Bool = true;
-             withN::Bool = false,
-             cumulative::Bool = false)
-
-systematic Kmer generation into dictionary：It matches each kmer to a unique index.
-
-the withN argument can be specified to decide whether dna"N" should be included as a nucleotide in the resulting kmers.
-
-the cumulative argument shouldnt ever be needed but it generates a kmer Dictionary with all the kmer sizes up to k.
-"""
-function genKmers(k::Int64, Dictionary::Bool = true; withN::Bool = false, cumulative::Bool = false) #O(4^k) no way around it im pretty sure.
-    if withN == false
-        bases = [dna"A"d, dna"C"d, dna"T"d, dna"G"d]
-    else
-        bases = [dna"A"d, dna"C"d, dna"T"d, dna"G"d, dna"N"d]
-    end
-    last = [dna""d]
-    curr = LongSequence{DNAAlphabet{4}}[]
-    if Dictionary == false
-        for i in 1:k
-            for b in bases
-                for l in last
-                    push!(curr,l*b)
-                end
-            end
-            last = copy(curr) #this may be slowing it down
-            curr = LongSequence{DNAAlphabet{4}}[]
-        end
-        return last
-    else
-        kmers = Dict{LongSequence{DNAAlphabet{4}}, Int64}()
-        index = 0
-        for i in 1:k
-            for b in bases
-                for l in last
-                    push!(curr,l*b)
-                    if !cumulative
-                        if length(l*b) == k #might speed up by a few nanosecs if I keep a count then
-                            index += 1
-                            kmers[l*b] = index
-                        end
-                    else
-                        index += 1
-                        kmers[l*b] = index
-                    end
-                end
-            end
-            last = copy(curr)
-            curr = LongSequence{DNAAlphabet{4}}[]
-        end
-        return kmers
-    end
-end
-
-"""
-kmerFreq(k::Int64,
-         seq::LongSequence{DNAAlphabet{4}},
-         KD::Dict{LongSequence{DNAAlphabet{4}};
-         returnDict::Bool = false)
-
-Computes the kmer frequency vector of a sequence from scratch by iteration (O(n)). It is actually a slightly slower version that the main GMA does not use.
-
-KD is the kmer Dictionary and an optional argument. If left empty, will be automatically generated WITH N's.
-
-Note that it includes overlap(it can be tested whether it helps. but intuitively the difference shouldnt be too large).
-"""
-function kmerFreq(k::Int64, seq::LongSequence{DNAAlphabet{4}}, KD::Dict{LongSequence{DNAAlphabet{4}}, Int64}; returnDict::Bool = false)
-    if !returnDict
-        rv = fill(0.0,length(KD))
-        for i in 1:length(seq)-k+1
-            subseq = seq[i:i+k-1]
-            if get(KD,subseq,nothing) != nothing
-                rv[KD[subseq]] += 1
-            end
-        end
-        return rv
-    else
-        rv = KD
-        for key in rv
-            rv[first(key)] = 0
-        end
-        for i in 1:length(seq)-k+1
-            subseq = seq[i:i+k-1]
-            if get(KD,subseq,nothing) != nothing
-                rv[subseq] += 1
-            end
-        end
-        return rv
-    end
-end
-
-function kmerFreq(k::Int64, seq::LongSequence{DNAAlphabet{4}}; returnDict::Bool = false)
-    KD = genKmers(k; withN = true)
-    if !returnDict
-        rv = fill(0.0,length(KD))
-        for i in 1:length(seq)-k+1
-            subseq = seq[i:i+k-1]
-            if get(KD,subseq,nothing) != nothing
-                rv[KD[subseq]] += 1
-            end
-        end
-        return rv
-    else
-        rv = KD
-        for key in rv
-            rv[first(key)] = 0
-        end
-        for i in 1:length(seq)-k+1
-            subseq = seq[i:i+k-1]
-            if get(KD,subseq,nothing) != nothing
-                rv[subseq] += 1
-            end
-        end
-        return rv
-    end
-end
-
-export kmerFreq
-
-export genKmers, sixMerNDict
-
 #Functions to do with lengths and counts of sequences/assemblies, not that useful
-function seqLenV(reader::FASTX.FASTA.Reader{})
+function seqsizeV(reader::FASTX.FASTA.Reader{})
     lengths = Int64[]
     for record in reader
-        l = FASTX.FASTA.seqlen(record)
+        l = FASTX.FASTA.seqsize(record)
         push!(lengths,l)
     end
     return lengths
 end
 
-function seqLenV(path::String)
-    seqLenV(open(FASTA.Reader, path))
+function seqsizeV(path::String)
+    seqsizeV(open(FASTA.Reader, path))
 end
 
-function avgSeqLen(lengths::Vector{Int64})
+function avgseqsize(lengths::Vector{Int64})
     return sum(lengths)/length(lengths)
 end
 
@@ -172,7 +49,8 @@ export recordCount
 #BIG PROBLEM: I THINK DOING OPEN(FASTA.READER) DOESNT WORK IN FUNCTIONS.
 
 """
-    avgRecLen(reader::FASTX.FASTA.Reader, rnd::Bool = false)
+    avgRecLen(reader::FASTX.FASTA.Reader,
+              rnd::Bool = false)
 
 get the rounded average length of every record in a FASTA.Reader object. (it can also be a string indicating the path)
 
@@ -180,11 +58,11 @@ rnd is an optional argument for whether the result should be rounded to an Inter
 """
 function avgRecLen(reader::FASTX.FASTA.Reader, rnd::Bool = true)
     Alen = 0
+    d = 0
     for record in reader
-        Alen += FASTX.FASTA.seqlen(record)
+        Alen += FASTX.FASTA.seqsize(record)
+        d += 1
     end
-    reader = open(FASTA.Reader, path)
-    d = recordCount(reader)
     if rnd
         return Int64(round(Alen/d))
     else
@@ -193,21 +71,22 @@ function avgRecLen(reader::FASTX.FASTA.Reader, rnd::Bool = true)
 end
 
 function avgRecLen(path::String, rnd::Bool = true)
-    reader = open(FASTA.Reader, path)
+    reader = open(FASTX.FASTA.Reader, path)
     Alen = 0
+    d = 0
     for record in reader
-        Alen += FASTX.FASTA.seqlen(record)
+        Alen += FASTX.FASTA.seqsize(record)
+        d += 1
     end
     if rnd == true
         reader = open(FASTA.Reader, path)
-        d = recordCount(reader)
         a = Alen/d
         return Int64(round(a))
     else
         reader = open(FASTA.Reader, path)
-        d = recordCount(reader)
         return Alen/d
     end
+    close(reader)
 end
 
 export avgRecLen
@@ -217,7 +96,7 @@ function seqMode(lengths)
 end
 
 function seqSd(reader::FASTX.FASTA.Reader)
-    lengths = SeqLengths(reader)
+    lengths = seqsizegths(reader)
     avg = sum(lengths)/length(lengths)
     all = []
     for length in lengths
@@ -536,7 +415,7 @@ function to just look at the individual record lengths of a reader object and op
 function readerlens(reader::FASTX.FASTA.Reader; plt::Bool = true)
     lenvec = Int64[]
     for record in reader
-        push!(lenvec,FASTX.FASTA.seqlen(record))
+        push!(lenvec,FASTX.FASTA.seqsize(record))
     end
     if !plt
         return lenvec
@@ -557,7 +436,7 @@ function to count the number of nts in a fasta reader object (length)
 function readerNTs(reader::FASTX.FASTA.Reader)
     len = 0
     for record in reader
-        len += FASTX.FASTA.seqlen(record)
+        len += FASTX.FASTA.seqsize(record)
     end
     return len
 end
@@ -565,12 +444,12 @@ end
 export readerNTs
 
 ##looking at FASTQ sequences with weird lengths(also can be done for fasta.):
-function inspectSeqLen(reader::FASTX.FASTQ.Reader, lengths::UnitRange{Int64}, amount::Int64 = 10, A::Bool = false)
+function inspectseqsize(reader::FASTX.FASTQ.Reader, lengths::UnitRange{Int64}, amount::Int64 = 10, A::Bool = false)
     c = 0
     if !A
         for record in reader
             if c <= amount
-                len = FASTQ.seqlen(record)
+                len = FASTQ.seqsize(record)
                 if len <= last(lengths) && len >= first(lengths)
                     println(record)
                     c += 1
@@ -580,7 +459,7 @@ function inspectSeqLen(reader::FASTX.FASTQ.Reader, lengths::UnitRange{Int64}, am
     else
         for record in reader
             if c <= amount
-                len = FASTQ.seqlen(record)
+                len = FASTQ.seqsize(record)
                 if len <= last(lengths) && len >= first(lengths)
                     println(">"*FASTQ.identifier(record)*" | length = "*string(len))
                     println(FASTQ.sequence(record))
@@ -595,7 +474,7 @@ function howManySeq(reader::FASTX.FASTQ.Reader, n::Int64)
     lessthan = 0
     morethan = 0
     for record in reader
-        len = FASTQ.seqlen(record)
+        len = FASTQ.seqsize(record)
         if len <= n
             lessthan += 1
         else
