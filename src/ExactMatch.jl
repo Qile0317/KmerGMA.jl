@@ -172,20 +172,3 @@ function PlotQueryMatches(matches::Dict{String, Vector{UnitRange{Int64}}}, reade
 end
 
 export PlotQueryMatches
-
-"""
-    MatchPlot(q::LongSequence{DNAAlphabet{4}},
-    Reader::FASTX.FASTA.Reader{};
-    overlap::Bool)
-    
-function that does everything by finding matches AND plotting. doesnt work atm.
-"""
-function MatchPlot(q::LongSequence{DNAAlphabet{4}}, LongSequence{DNAAlphabet{4}}}, Reader::FASTX.FASTA.Reader{}; overlap::Bool)
-    matches = exactMatch(q,reader,overlap)
-    SlowerPQM(matches,reader)
-    return matches
-end
-
-export MatchPlots
-
-#MatchPlot(query, reader, true)

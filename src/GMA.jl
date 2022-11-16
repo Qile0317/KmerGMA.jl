@@ -239,8 +239,6 @@ function writeQueryMatch(k::Int64, record::FASTX.FASTA.Record, IMGTref::Dict{Lon
     end
 end
 
-export writeQueryMatch
-
 ####################################################################
 #faster one for record, essential for GMA!!!!
 function gma(;
@@ -317,79 +315,14 @@ end
 #red = open(FASTA.Reader,"C:/Users/lu_41/Desktop/Sofo Prok/VgeneData/genBank/A81.fasta")
 #inp = first(red)
 #using BenchmarkTools
-
 #gma(k=6, record=inp,refVec=ref,windowsize=289,
 #kmerDict=d,path="testing.fasta",thr=200.0,
-#buff=289, rv=rV, thrbuff="test")
-
-#FASTA.Writer(open("testing.fasta", "w"), width = 95) do writer
-#    write(writer, inp) # a FASTA.Record
-#    close(writer)
-#end
-
-#write(FASTA.Writer(open("testing.fasta", "a"), width = 95), inp)
+#buff=289, rv=rV, thrbuff="test") avg 8ms +- 2ms for the 41260 length sequence.
 
 #using FlameGraphs, ProfileView, Profile
 #Profile.clear(); @profile kmerGMA.writeQueryMatchN(6,LA,ref,d,190.0,289,50,"VicPacScan/vicpacscan.fasta"; rv = rV, thrbuff = "test")
 #g = flamegraph()
 #ProfileView.view()
-"""
-    writeQueryMatch(k::Int64,
-                    reader::FASTX.FASTA.Reader,
-                    IMGTref::Dict{LongSequence{DNAAlphabet{4}}, Float64},
-                    path::String;
-                    kmerDict::Union{Dict{LongSequence{DNAAlphabet{4}}, Int64},Nothing} = nothing,
-                    thr::Union{Float64, Int64} = 180.0,
-                    windowsize::Int64 = 0,
-                    buff::Int64 = 50)
-
-The main implementation of the genome mining algorithm as described by the paper.
-
-- The windowsize is a bit screwed, probably will have it deprecated?
-"""
-function writeQueryMatch(k::Int64, reader::FASTX.FASTA.Reader,
-    IMGTref::Dict{LongSequence{DNAAlphabet{4}}, Float64}, path::String,
-    windowsize::Int64 = 289; kmerDict::Dict{LongSequence{DNAAlphabet{4}}, Int64} = Dict(),
-    thr::Union{Float64, Int64} = 180.0, buff::Int64 = 50)
-
-    #initializing nessecary arguments
-    if kmerDict == Dict()
-        kmerDict = genKmers(k,withN=true)
-    end
-
-    RV = fill(0.0,length(kmerDict))
-    IMGTref = cvDicVec(IMGTref,kmerDict) #this is a bit dumb, its actually possible to make it generate a vector in the first place.
-
-    if buff != 0
-        thrBuf = " | thr = "*string(thr)*" | buffer = "*string(buff)
-    else
-        thrBuf = " | thr = "*string(thr)
-    end
-
-    #Genome scanning by writing to a file
-    for record in reader
-        writeQueryMatchN(k, record, IMGTref, windowsize,
-        kmerDict, thr, buff, path;
-        rv = RV, thrbuff = thrBuf)
-    end
-    close(reader)
-end
-
-export writeQueryMatch
-
-#dic = KmerGMA.genKmers(6;withN=true)
-#ref = KmerGMA.genRef(6,"C:/Users/lu_41/Desktop/Sofo Prok/VgeneData/AlpacaV.fasta",dic)
-#@benchmark KmerGMA.writeQueryMatch(6,open(FASTA.Reader,
-#"C:/Users/lu_41/Desktop/Sofo Prok/VgeneData/genBankTest.fasta"),
-#ref,"src/testing.fasta"; kmerDict = dic)
-# 0.158826 seconds (1.94 M allocations: 97.667 MiB)
-
-#@time kmerGMA.writeQueryMatch(6,open(FASTA.Reader,LA),V3NRef,sixMerNDict,170.0,289,50,"VicPacScan/vicpacscan.fasta")
-
-
-#scanning all of vicpac. i should put a progress bar.
-#@time writeQueryMatch(6,open(FASTA.Reader,VicPac),V3NRef,genKmers(6,withN=true),350,289,50,"VicPacScan/vicpacscan.fasta")
-#@time didnt work but this run started at around 7:06 and ended at 7:23 so it took 17 minutes ish.
 
 """
 TO DO/TO ASK LIST:
