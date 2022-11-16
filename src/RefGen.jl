@@ -13,16 +13,17 @@ Is the reference generation algorithm used in the GMA.
 can heavily optimized but it doesn't matter too much atm but it will probably not scale too well for very long databases
 """
 function genRef(k::Int64, reader::FASTX.FASTA.Reader, kmerDict::Dict{LongSequence{DNAAlphabet{4}}, Int64}) #; returnDict::Bool = true
-    len = recordCount(reader) # this screws the function
-    answer = Dict{LongSequence{DNAAlphabet{4}}, Float64}()
+    len = 0
+    answer = Dict()
     for key in kmerDict
-        answer[first(key)] = 0.0
+        answer[LongSequence{DNAAlphabet{4}}(first(key))] = 0.0
     end
     for record in reader
-        seq = FASTA.sequence(record)
+        seq = getSeq(record)
         for i in 1:length(seq)-k+1
             answer[seq[i:i+k-1]] += 1
         end
+        len += 1
     end
     for key in answer
         answer[first(key)] /= len
@@ -32,23 +33,22 @@ end
 
 function genRef(k::Int64, path::String, kmerDict::Dict{LongSequence{DNAAlphabet{4}}, Int64})
     reader = open(FASTA.Reader,path)
-    len = recordCount(reader)
-    answer = Dict{LongSequence{DNAAlphabet{4}}, Float64}()
+    len = 0
+    answer = Dict()
     for key in kmerDict
-        answer[first(key)] = 0.0
+        answer[LongSequence{DNAAlphabet{4}}(first(key))] = 0.0
     end
-    reader = open(FASTA.Reader,path) #just in case
     for record in reader
-        seq = FASTA.sequence(record)
+        seq = LongSequence{DNAAlphabet{4}}(FASTA.sequence(record))
         for i in 1:length(seq)-k+1
             answer[seq[i:i+k-1]] += 1
         end
+        len += 1
     end
     for key in answer
         answer[first(key)] /= len
     end
     return answer
-    close(reader)
 end
 
 export genRef
@@ -65,22 +65,22 @@ Its extremely simple and just adds to a the SED of the first reference sequence'
 """
 function findthr(refseqs, refKFV::Dict{LongSequence{DNAAlphabet{4}}, Float64},
     KD::Dict{LongSequence{DNAAlphabet{4}}, Int64}; buff::Union{Int64,Float64} = 25)
-        answer = 0 
-        if typeof(refseqs) == String
-            open(FASTX.FASTA.Reader, refseqs) do io
-                seq = FASTA.sequence(first(io))
-                answer = Distances.sqeuclidean(kmerFreq(
-                length(first(first(KD))),seq,KD),
-                kfv(refKFV,KD)) + buff
-            end
-        elseif typeof(refseqs) == FASTX.FASTA.Reader
-            seq = FASTA.sequence(first(refseqs))
-            answer = Distances.sqeuclidean(kmerFreq(length(first(first(KD))),seq,KD),
+    answer = 0
+    if typeof(refseqs) == String
+        open(FASTX.FASTA.Reader, refseqs) do io
+            seq = getSeq(first(io))
+            answer = Distances.sqeuclidean(kmerFreq(
+            length(first(first(KD))),seq,KD),
             kfv(refKFV,KD)) + buff
-            close(refseqs)
         end
-        return answer
+    elseif typeof(refseqs) == FASTX.FASTA.Reader
+        seq = getSeq(first(refseqs))
+        answer = Distances.sqeuclidean(kmerFreq(length(first(first(KD))),seq,KD),
+        kfv(refKFV,KD)) + buff
+        close(refseqs)
     end
+    return answer + buff
+end
 
 export findthr
 

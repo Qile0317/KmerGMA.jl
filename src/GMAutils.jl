@@ -1,10 +1,16 @@
-const SeqView = SubString{StringViews.StringView{SubArray{
-    UInt8, 1, Vector{UInt8}, Tuple{UnitRange{Int64}}, true}}}
+#const SeqView = SubString{StringViews.StringView{SubArray{
+    #UInt8, 1, Vector{UInt8}, Tuple{UnitRange{Int64}}, true}}}
+
+#I have to implement this bc of FASTX's new update -_-
+#it increases processing by about 6 microseconds, ugh
+#I mean, ig its possible to have a local version but... eh
+function getSeq(seq::FASTX.FASTA.Record)
+     LongSequence{DNAAlphabet{4}}(FASTX.FASTA.sequence(seq))
+ end
 
 #faster kmer frequency from scratch with some given imputs, used in GMA. Its half the speed of a bitwise version. Replacing with the bitwise version can save almost a minute.
-function fasterKF(k::Int64, seq::SeqView, #not sure abt this
+function fasterKF(k::Int64, seq::LongSequence{DNAAlphabet{4}},
     KD::Dict{LongSequence{DNAAlphabet{4}}, Int64}, rv::Vector{Float64})
-
     for i in 1:length(seq)-k+1
         subseq = @view seq[i:i+k-1]
         rv[KD[subseq]] += 1

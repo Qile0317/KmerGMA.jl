@@ -67,11 +67,11 @@ end
     #problem: now that im using @views, i have to revamp everything to the type of seqView...
 end
 
-#open(FASTX.FASTA.Reader, "test/Alp_V_ref.fasta") do reference
-#    open(FASTX.FASTA.Reader, "test/Alp_V_locus.fasta") do target
-#        print(testFindGenes(genome=target,ref=reference))
-#    end
-#end
+open(FASTX.FASTA.Reader, "test/Alp_V_ref.fasta") do reference
+    open(FASTX.FASTA.Reader, "test/Alp_V_locus.fasta") do target
+        testFindGenes(genome=target,ref=reference)
+    end
+end
 
 @testset "ExactMatch.jl" begin
     #exactMatch set - single sequence
