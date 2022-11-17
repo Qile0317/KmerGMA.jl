@@ -136,34 +136,3 @@ function cflength(reader::FASTX.FASTA.Reader{})
 end
 
 export cflength
-
-function PltQueryMatches(matches::Dict{String, Vector{UnitRange{Int64}}}, rlength::Int64, clengths::Dict{String,Int64})
-    x = Int64[]
-    for match in matches
-        currlen = clengths[first(match)]
-        c = matches[first(match)]
-        for ur in c
-            f = first(ur) + currlen
-            push!(x,f)
-        end
-    end
-    push!(x,rlength) #for a slightly more elegant graph i could maybe try find a way to extend the x axis to rlength
-    y = fill(1,rlength)
-    scatter(x,y, title = "query match locations", label = "first position of match")
-    xlabel!("matches along genome")
-end
-
-"""
-    PlotQueryMatches(matches, reader)
-
-matches is the dictionary returned by exactMatch() from the original reader
-
-plot the locations along the genome where an exact match was found.
-"""
-function PlotQueryMatches(matches::Dict{String, Vector{UnitRange{Int64}}}, reader::FASTX.FASTA.Reader)
-    cl = cflength(reader)
-    rlen = readerNTs(reader)
-    PltQueryMatches(matches,rlen,cl)
-end
-
-export PlotQueryMatches
