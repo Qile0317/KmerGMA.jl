@@ -173,9 +173,12 @@ function testFindGenes(; genome::FASTX.FASTA.Reader,
     return results
 end
 
-
+"""
 open(FASTX.FASTA.Reader,tf) do reference
     open(FASTX.FASTA.Reader,gf) do target
         testFindGenes(genome = target, ref = reference)
     end
 end
+
+#doesnt work..... ugh
+"""
