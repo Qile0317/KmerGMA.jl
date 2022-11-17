@@ -12,8 +12,8 @@ function getSeq(seq::FASTX.FASTA.Record)
 function fasterKF(k::Int64, seq::LongSequence{DNAAlphabet{4}},
     KD::Dict{LongSequence{DNAAlphabet{4}}, Int64}, rv::Vector{Float64})
     for i in 1:length(seq)-k+1
-        subseq = @view seq[i:i+k-1]
-        rv[KD[subseq]] += 1
+        @views subseq = seq[i:i+k-1]
+        rv[KD[subseq]] += 1 #got rid of @views, unfortunately its slower now but the new FASTX update screwed me over.
     end
     return rv
 end

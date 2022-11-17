@@ -14,7 +14,7 @@ can heavily optimized but it doesn't matter too much atm but it will probably no
 """
 function genRef(k::Int64, reader::FASTX.FASTA.Reader, kmerDict::Dict{LongSequence{DNAAlphabet{4}}, Int64}) #; returnDict::Bool = true
     len = 0
-    answer = Dict()
+    answer = Dict{LongSequence{DNAAlphabet{4}}, Float64}()
     for key in kmerDict
         answer[LongSequence{DNAAlphabet{4}}(first(key))] = 0.0
     end
@@ -34,7 +34,7 @@ end
 function genRef(k::Int64, path::String, kmerDict::Dict{LongSequence{DNAAlphabet{4}}, Int64})
     reader = open(FASTA.Reader,path)
     len = 0
-    answer = Dict()
+    answer = Dict{LongSequence{DNAAlphabet{4}}, Float64}()
     for key in kmerDict
         answer[LongSequence{DNAAlphabet{4}}(first(key))] = 0.0
     end
@@ -71,12 +71,12 @@ function findthr(refseqs, refKFV::Dict{LongSequence{DNAAlphabet{4}}, Float64},
             seq = getSeq(first(io))
             answer = Distances.sqeuclidean(kmerFreq(
             length(first(first(KD))),seq,KD),
-            kfv(refKFV,KD)) + buff
+            kfv(refKFV,KD))
         end
     elseif typeof(refseqs) == FASTX.FASTA.Reader
         seq = getSeq(first(refseqs))
         answer = Distances.sqeuclidean(kmerFreq(length(first(first(KD))),seq,KD),
-        kfv(refKFV,KD)) + buff
+        kfv(refKFV,KD))
         close(refseqs)
     end
     return answer + buff

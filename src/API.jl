@@ -51,6 +51,7 @@ end
 export findGenes
 
 #testing version, same code but doesnt write to a file and instead pushes to a vector
+#it only pushes nucleotides 10 to 20 for testing purposes
 function test_gma(; k::Int64,
     record::FASTX.FASTA.Record,
     refVec::Vector{Float64},
@@ -64,7 +65,7 @@ function test_gma(; k::Int64,
 
     #initial operations
     seq = FASTA.sequence(LongSequence{DNAAlphabet{4}}, record)
-    @views curr = fasterKF(k,seq[1:windowsize],kmerDict,rv) #Theres an even faster way with unsigned ints and bits
+    @views curr = fasterKF(k,seq[1:windowsize],kmerDict,rv) #Theres an even faster way with unsigned ints and bits.
     currSqrEuc = Distances.sqeuclidean(refVec,curr)
 
     #defining some variables needed later
@@ -99,9 +100,10 @@ function test_gma(; k::Int64,
         else
             if stop == false #in future account for if buffer exceeds end or front
                 #create the record of the match
-                rec = FASTA.Record(FASTA.identifier(record),
-                "| SED = "*string(currminim)[1:5]*" | Pos = "*string(CMI+1)*":"*string(CMI+windowsize+1)*thrbuff,
-                seq[i-buff:i+windowsize-1+buff])
+                rec = FASTA.Record(String(FASTA.identifier(record))*" | SED = "*
+                string(currminim)[1:5]*" | Pos = "*string(CMI+1)*":"*string(CMI+
+                windowsize+1)*thrbuff,
+                LongSequence{DNAAlphabet{4}}(seq[i-buff:i+windowsize-1+buff])[10:20])
 
                 #write in the record to the file
                 push!(path, rec)
@@ -114,6 +116,8 @@ function test_gma(; k::Int64,
     end
 end
 
+"""
+#old testing code
 open(FASTX.FASTA.Reader, "test/Alp_V_ref.fasta") do reference
     open(FASTX.FASTA.Reader, "test/Alp_V_locus.fasta") do target
         KD = genKmers(6,withN=true)
@@ -133,8 +137,11 @@ open(FASTX.FASTA.Reader, "test/Alp_V_ref.fasta") do reference
         print(inp)
     end
 end
+"""
 
-
+"""
+testing function only
+"""
 function testFindGenes(; genome::FASTX.FASTA.Reader,
     ref::FASTX.FASTA.Reader,
     k::Int64 = 6, windowsize::Int64 = 0,
@@ -164,4 +171,11 @@ function testFindGenes(; genome::FASTX.FASTA.Reader,
     close(ref)
     close(genome)
     return results
+end
+
+
+open(FASTX.FASTA.Reader,tf) do reference
+    open(FASTX.FASTA.Reader,gf) do target
+        testFindGenes(genome = target, ref = reference)
+    end
 end

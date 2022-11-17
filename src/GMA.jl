@@ -246,8 +246,9 @@ function gma(;
     thrbuff::String)
 
     #initial operations
-    seq = FASTA.sequence(record)
-    @views curr = fasterKF(k,seq[1:windowsize],kmerDict,rv) #Theres an even faster way with unsigned ints and bits
+    #initial operations
+    seq = FASTA.sequence(LongSequence{DNAAlphabet{4}}, record)
+    @views curr = fasterKF(k,seq[1:windowsize],kmerDict,rv) #Theres an even faster way with unsigned ints and bits.
     currSqrEuc = Distances.sqeuclidean(refVec,curr)
 
     #defining some variables needed later
@@ -282,9 +283,10 @@ function gma(;
         else
             if stop == false #in future account for if buffer exceeds end or front
                 #create the record of the match
-                rec = FASTA.Record(FASTA.identifier(record),
-                "| SED = "*string(currminim)[1:5]*" | Pos = "*string(CMI+1)*":"*string(CMI+windowsize+1)*thrbuff,
-                seq[i-buff:i+windowsize-1+buff])
+                rec = FASTA.Record(String(FASTA.identifier(record))*" | SED = "*
+                string(currminim)[1:5]*" | Pos = "*string(CMI+1)*":"*string(CMI+
+                windowsize+1)*thrbuff,
+                LongSequence{DNAAlphabet{4}}(seq[i-buff:i+windowsize-1+buff]))
 
                 #write in the record to the file
                 FASTA.Writer(open(path, "a"), width = 95) do writer
@@ -299,18 +301,6 @@ function gma(;
     end
 end
 
-#testing. problem: idk why but the sequence reading is not working...
-#d = KmerGMA.genKmers(6,withN=true)
-#r = KmerGMA.genRef(6,"C:/Users/lu_41/Desktop/Sofo Prok/VgeneData/AlpacaV.fasta",d)
-#ref = KmerGMA.kfv(r,d)
-#rV = fill(0.0,5^6)
-#red = open(FASTA.Reader,"C:/Users/lu_41/Desktop/Sofo Prok/VgeneData/genBank/A81.fasta")
-#inp = first(red)
-#using BenchmarkTools
-#gma(k=6, record=inp,refVec=ref,windowsize=289,
-#kmerDict=d,path="testing.fasta",thr=200.0,
-#buff=289, rv=rV, thrbuff="test") avg 8ms +- 2ms for the 41260 length sequence.
-
 #using FlameGraphs, ProfileView, Profile
 #Profile.clear(); @profile kmerGMA.writeQueryMatchN(6,LA,ref,d,190.0,289,50,"VicPacScan/vicpacscan.fasta"; rv = rV, thrbuff = "test")
 #g = flamegraph()
@@ -318,6 +308,7 @@ end
 
 """
 TO DO/TO ASK LIST:
+    -> I gotta adjust for the new FASTX update bc substrs now are StringViews...
     -> BIG THING: In future I want to include D and J genes for comparison, and
         -> make a threshold predictor by taking averages and going 1-2 SD down. although for k=6, usually around SED = 150 - 190 works ok?
         -> There can be a currnt minimum function that returns it so there doesnt have to be so many repeated code chunks of the first 2 operations
