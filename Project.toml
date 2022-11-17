@@ -21,6 +21,7 @@ BioSequences = "3"
 Distances = "0.10"
 FASTX = "2"
 ProgressMeter = "1"
+StringViews = "1"
 julia = "1"
 
 [extras]
