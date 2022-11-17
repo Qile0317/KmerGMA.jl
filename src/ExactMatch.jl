@@ -104,11 +104,6 @@ export exactMatch
 
 #the algo is nothing fancy, it just uses BioSequences's exactmatch function. It'll be interesting comparing it to the GMA at SED = 0
 
-##
-
-#FASTX.FASTA.seqlen(firstr) # 0.000001 seconds
-#is much faster than other methods
-
 """
     cflength(reader)
 
@@ -134,7 +129,7 @@ function cflength(reader::FASTX.FASTA.Reader{})
     for record in reader
         identifier = FASTA.identifier(record)
         clength += prev
-        prev = FASTX.FASTA.seqlen(record)
+        prev = FASTX.FASTA.seqsize(record)
         lengthmap[identifier] = clength
     end
     return lengthmap

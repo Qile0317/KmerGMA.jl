@@ -8,6 +8,8 @@ function getSeq(seq::FASTX.FASTA.Record)
      LongSequence{DNAAlphabet{4}}(FASTX.FASTA.sequence(seq))
  end
 
+export getSeq
+
 #faster kmer frequency from scratch with some given imputs, used in GMA. Its half the speed of a bitwise version. Replacing with the bitwise version can save almost a minute.
 function fasterKF(k::Int64, seq::LongSequence{DNAAlphabet{4}},
     KD::Dict{LongSequence{DNAAlphabet{4}}, Int64}, rv::Vector{Float64})
@@ -17,6 +19,8 @@ function fasterKF(k::Int64, seq::LongSequence{DNAAlphabet{4}},
     end
     return rv
 end
+
+export fasterKF
 
 """
     genKmers(k::Int64,
