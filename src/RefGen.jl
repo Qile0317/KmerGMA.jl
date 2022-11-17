@@ -74,9 +74,9 @@ function findthr(refseqs, refKFV::Dict{LongSequence{DNAAlphabet{4}}, Float64},
             kfv(refKFV,KD))
         end
     elseif typeof(refseqs) == FASTX.FASTA.Reader
-        seq = getSeq(first(refseqs))
-        answer = Distances.sqeuclidean(kmerFreq(length(first(first(KD))),seq,KD),
-        kfv(refKFV,KD))
+        seq = getSeq(first(refseqs)) 
+        answer = Distances.sqeuclidean(kmerFreq(length(first(first(KD))),
+        seq,KD), kfv(refKFV,KD))
         close(refseqs)
     end
     return answer + buff
