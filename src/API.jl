@@ -115,7 +115,7 @@ function test_gma(; k::Int64,
         end
     end
 end
-
+export test_gma
 """
 #old testing code
 open(FASTX.FASTA.Reader, "test/Alp_V_ref.fasta") do reference
