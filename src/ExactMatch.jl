@@ -72,8 +72,9 @@ Returns a dictionary of the identifiers of individual records it found matches i
 
 The algorithm is simply based on the Biosequences findfirst() function and runs quite fast through entire genomes.
 """
-function exactMatch(query::LongSequence{DNAAlphabet{4}}, seq::LongSequence{DNAAlphabet{4}}; overlap::Bool = true)
-    q = ExactSearchQuery(query)
+function exactMatch(query, seq; overlap::Bool = true)
+    q = ExactSearchQuery(LongSequence{DNAAlphabet{4}}(query))
+    seq = LongSequence{DNAAlphabet{4}}(seq)
     answer = UnitRange[]
     if overlap==true
         FindAllOverlap(q, seq, answer)
@@ -82,11 +83,12 @@ function exactMatch(query::LongSequence{DNAAlphabet{4}}, seq::LongSequence{DNAAl
     end
 end
 
-function exactMatch(query::LongSequence{DNAAlphabet{4}}, Reader::FASTX.FASTA.Reader{}; overlap::Bool = true)
-    q = ExactSearchQuery(query)
+#had to get rid of some type specifications
+function exactMatch(query, Reader::FASTX.FASTA.Reader{}; overlap::Bool = true)
+    q = ExactSearchQuery(LongSequence{DNAAlphabet{4}}(query))
     identify = Dict{String,Vector{UnitRange{Int64}}}()
     for record in Reader
-        seq = FASTA.sequence(record)
+        seq = getSeq(record)
         RM = exactMatch(query,seq; overlap=overlap)
         if !isnothing(RM)
             identify[FASTA.identifier(record)] = RM

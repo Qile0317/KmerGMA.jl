@@ -2,3 +2,4 @@
 /Manifest.toml
 /upcoming/BLAST.jl
 /upcoming/Plotting.jl
+/test/localtest.jl

@@ -47,75 +47,8 @@ function findGenes(;genome::FASTX.FASTA.Reader,
       #return blastseq #unfinished
    #end
 end
-
 export findGenes
 
-#testing version, same code but doesnt write to a file and instead pushes to a vector
-#it only pushes nucleotides 10 to 20 for testing purposes
-function test_gma(; k::Int64,
-    record::FASTX.FASTA.Record,
-    refVec::Vector{Float64},
-    windowsize::Int64,
-    kmerDict::Dict{LongSequence{DNAAlphabet{4}}, Int64},
-    path::Vector{FASTX.FASTA.Record},
-    thr::Float64,
-    buff::Int64,
-    rv::Vector{Float64},
-    thrbuff::String)
-
-    #initial operations
-    seq = FASTA.sequence(LongSequence{DNAAlphabet{4}}, record)
-    @views curr = fasterKF(k,seq[1:windowsize],kmerDict,rv) #Theres an even faster way with unsigned ints and bits.
-    currSqrEuc = Distances.sqeuclidean(refVec,curr)
-
-    #defining some variables needed later
-    CMI = 2
-    stop = true
-    currminim = currSqrEuc
-
-    for i in 1:(length(seq)-windowsize) #big change: starts from 1 so i dont need to -1 nymore
-        #first operation
-        #zeroth kmer
-        @views zerokInt = kmerDict[seq[i:i+k-1]] #might be slightly faster to predefine
-        @views MinusOld = (refVec[zerokInt]-curr[zerokInt])^2
-        curr[zerokInt] -= 1
-        @views MinusNew = (refVec[zerokInt]-curr[zerokInt])^2
-
-        #last kmer
-        @views KendInt = kmerDict[seq[i+windowsize-k:i+windowsize-1]]
-        @views PlusOld = (refVec[KendInt]-curr[KendInt])^2
-        curr[KendInt] += 1
-        @views PlusNew = (refVec[KendInt]-curr[KendInt])^2
-
-        #second operation.
-        currSqrEuc += PlusNew + MinusNew - PlusOld - MinusOld
-
-        #third operation
-        if currSqrEuc < thr
-            if currSqrEuc < currminim
-                currminim = currSqrEuc
-                CMI = i
-                stop = false
-            end
-        else
-            if stop == false #in future account for if buffer exceeds end or front
-                #create the record of the match
-                rec = FASTA.Record(String(FASTA.identifier(record))*" | SED = "*
-                string(currminim)[1:5]*" | Pos = "*string(CMI+1)*":"*string(CMI+
-                windowsize+1)*thrbuff,
-                LongSequence{DNAAlphabet{4}}(seq[i-buff:i+windowsize-1+buff])[10:20])
-
-                #write in the record to the file
-                push!(path, rec)
-
-                #reset
-                currminim = currSqrEuc
-                stop = true
-            end
-        end
-    end
-end
-export test_gma
 """
 #old testing code
 open(FASTX.FASTA.Reader, "test/Alp_V_ref.fasta") do reference
@@ -142,36 +75,37 @@ end
 """
 testing function only
 """
-function testFindGenes(; genome::FASTX.FASTA.Reader,
-    ref::FASTX.FASTA.Reader,
-    k::Int64 = 6, windowsize::Int64 = 0,
-    print::Bool = false, thr::Int64 = 0,
-    buffer::Int64 = 50, BLAST = true)
+function testFindGenes(;
+   genome::FASTX.FASTA.Reader,
+   ref::FASTX.FASTA.Reader,
+   k::Int64 = 6,
+   windowsize::Int64 = 0, thr::Int64 = 0, buffer::Int64 = 50)
 
-    k < 4 && error("try a higher value like 6. It is most likely more accurate") #adressing k-value
-    windowsize == 0 && (windowsize = avgRecLen(ref,true)) #finding of adequate windowsize
+   k < 4 && error("try a higher value like 6. It is most likely more accurate") #adressing k-value
+   windowsize == 0 && (windowsize = avgRecLen(ref,true)) #finding of adequate windowsize
 
-    #variables needed for the GMA
-    KD = genKmers(k;withN=true) #generation of kmer dictionary
-    refKFD = genRef(k,ref,KD) #generation of kmer frequency dict
-    refKFV = kfv(refKFD,KD) #generation of kmer frequency dict
-    RV = fill(0.0,5^k)
-    threshold_buffer_tag = " | thr = "*string(thr)*" | buffer = "*string(buffer)
-    results = FASTX.FASTA.Record[]
-    thr == 0 && (thr = Float64(findthr(ref,refKFD,KD))) #SED threshold estimation
+   #variables needed for the GMA
+   KD = genKmers(k;withN=true) #generation of kmer dictionary
+   refKFD = genRef(k,ref,KD) #generation of kmer frequency dict
+   refKFV = kfv(refKFD,KD) #generation of kmer frequency dict
+   RV = fill(0.0,5^k)
+   threshold_buffer_tag = " | thr = "*string(thr)*" | buffer = "*string(buffer)
+   results = FASTX.FASTA.Record[]
+   thr == 0 && (thr = Float64(findthr(ref,refKFD,KD))) #SED threshold estimation
 
     #genome mining, code copied from gma()
-    for rec in genome
-        test_gma(k=k, record = rec, refVec =refKFV,
-        windowsize = windowsize, kmerDict = KD,
-        path=results, thr=thr, buff=buffer,
-        rv=copy(RV), #from benchmarking it seems copying isnt that slow?
-        thrbuff=threshold_buffer_tag)
-    end
-    close(ref)
-    close(genome)
-    return results
+   for rec in genome
+      test_gma(k=k, record = rec, refVec =refKFV,
+      windowsize = windowsize, kmerDict = KD,
+      path=results, thr=thr, buff=buffer,
+      rv=copy(RV), #from benchmarking it seems copying isnt that slow?
+      thrbuff=threshold_buffer_tag)
+   end
+   close(ref)
+   close(genome)
+   return results
 end
+export testFindGenes
 
 """
 open(FASTX.FASTA.Reader,tf) do reference

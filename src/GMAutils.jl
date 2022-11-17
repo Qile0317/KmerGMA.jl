@@ -4,6 +4,11 @@
 #I have to implement this bc of FASTX's new update -_-
 #it increases processing by about 6 microseconds, ugh
 #I mean, ig its possible to have a local version but... eh
+"""
+    getSeq(FASTA.Record)
+
+get the dna longsequence of a fasta record
+"""
 function getSeq(seq::FASTX.FASTA.Record)
      LongSequence{DNAAlphabet{4}}(FASTX.FASTA.sequence(seq))
  end

@@ -249,7 +249,6 @@ function gma(;
     thrbuff::String)
 
     #initial operations
-    #initial operations
     seq = FASTA.sequence(LongSequence{DNAAlphabet{4}}, record)
     @views curr = fasterKF(k,seq[1:windowsize],kmerDict,rv) #Theres an even faster way with unsigned ints and bits.
     currSqrEuc = Distances.sqeuclidean(refVec,curr)
@@ -303,6 +302,76 @@ function gma(;
         end
     end
 end
+
+#testing version that pushes instead of writing. Also it could actually be a viable alternative
+
+#testing version, same code as gma but doesnt write to a file and instead pushes to a vector
+#it only pushes nucleotides 10 to 20 for testing purposes
+function test_gma(;
+    k::Int64,
+    record::FASTX.FASTA.Record,
+    refVec::Vector{Float64},
+    windowsize::Int64,
+    kmerDict::Dict{LongSequence{DNAAlphabet{4}}, Int64},
+    path::Vector{FASTX.FASTA.Record},
+    thr::Float64,
+    buff::Int64,
+    rv::Vector{Float64},
+    thrbuff::String)
+
+    #initial operations
+    seq = FASTA.sequence(LongSequence{DNAAlphabet{4}}, record)
+    @views curr = fasterKF(k,seq[1:windowsize],kmerDict,rv) #Theres an even faster way with unsigned ints and bits.
+    currSqrEuc = Distances.sqeuclidean(refVec,curr)
+
+    #defining some variables needed later
+    CMI = 2
+    stop = true
+    currminim = currSqrEuc
+
+    for i in 1:(length(seq)-windowsize) #big change: starts from 1 so i dont need to -1 nymore
+        #first operation
+        #zeroth kmer
+        @views zerokInt = kmerDict[seq[i:i+k-1]] #might be slightly faster to predefine
+        @views MinusOld = (refVec[zerokInt]-curr[zerokInt])^2
+        curr[zerokInt] -= 1
+        @views MinusNew = (refVec[zerokInt]-curr[zerokInt])^2
+
+        #last kmer
+        @views KendInt = kmerDict[seq[i+windowsize-k:i+windowsize-1]]
+        @views PlusOld = (refVec[KendInt]-curr[KendInt])^2
+        curr[KendInt] += 1
+        @views PlusNew = (refVec[KendInt]-curr[KendInt])^2
+
+        #second operation.
+        currSqrEuc += PlusNew + MinusNew - PlusOld - MinusOld
+
+        #third operation
+        if currSqrEuc < thr
+            if currSqrEuc < currminim
+                currminim = currSqrEuc
+                CMI = i
+                stop = false
+            end
+        else
+            if stop == false #in future account for if buffer exceeds end or front
+                #create the record of the match
+                rec = FASTA.Record(String(FASTA.identifier(record))*" | SED = "*
+                string(currminim)[1:5]*" | Pos = "*string(CMI+1)*":"*string(CMI+
+                windowsize+1)*thrbuff,
+                LongSequence{DNAAlphabet{4}}(seq[i-buff:i+windowsize-1+buff])[10:20])
+
+                #write in the record to the file
+                push!(path, rec)
+
+                #reset
+                currminim = currSqrEuc
+                stop = true
+            end
+        end
+    end
+end
+export test_gma
 
 #using FlameGraphs, ProfileView, Profile
 #Profile.clear(); @profile kmerGMA.writeQueryMatchN(6,LA,ref,d,190.0,289,50,"VicPacScan/vicpacscan.fasta"; rv = rV, thrbuff = "test")
