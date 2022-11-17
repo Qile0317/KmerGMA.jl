@@ -61,11 +61,11 @@ end
 @testset "GMA.jl" begin
     @test fasterKF(1,dna"GAGATAC",KD,[0.0,0.0,0.0,0.0,0.0]) == [3.0,1.0,1.0,2.0,0.0]
 
-    @test open(FASTX.FASTA.Reader,tf) do io
-        queryMatch(1,first(io),KFV,KD,289) == [71.2219387755102,
-        84.10289115646258, 84.10289115646258, 84.10289115646258, 80.1267006802721,
-        104.36479591836734, 117.26955782312923]
-    end #this is outdated and probably doesnt work.
+    #@test open(FASTX.FASTA.Reader,tf) do io #this is redundant
+        #queryMatch(1,first(io),KFV,KD,289) == [71.2219387755102,
+        #84.10289115646258, 84.10289115646258, 84.10289115646258, 80.1267006802721,
+        #104.36479591836734, 117.26955782312923]
+    #end #this is outdated and probably doesnt work.
 
     #@test open(FASTX.FASTA.Reader,tf) do reference
     #    open(FASTX.FASTA.Reader,gf) do target

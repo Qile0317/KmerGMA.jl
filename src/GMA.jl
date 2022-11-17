@@ -6,7 +6,10 @@
 #implementation of functions needed for the first step of the optimized method
 
 #this version just treates N as another nucleotide. it actually seems to work well as Ns incur a high sqeuclidean dist.
-function queryMatch(k::Int64, record::FASTX.FASTA.Record, IMGTref::Dict{LongSequence{DNAAlphabet{4}}, Float64}, kmerDict::Dict{LongSequence{DNAAlphabet{4}}, Int64}, windowsize::Int64 = 0)
+function queryMatch(k::Int64, record::FASTX.FASTA.Record,
+    IMGTref::Dict{LongSequence{DNAAlphabet{4}}, Float64},
+    kmerDict::Dict{LongSequence{DNAAlphabet{4}}, Int64},
+    windowsize::Int64 = 0)
     if windowsize == 0
         windowsize = avgRecLen(IMGTref)
     end
@@ -44,7 +47,7 @@ function queryMatch(k::Int64, record::FASTX.FASTA.Record, IMGTref::Dict{LongSequ
     return EucVec
 end
 
-export queryMatch
+#export queryMatch
 
 #incorporates faster kmer match
 function queryMatchN(k::Int64, record::FASTX.FASTA.Record,
