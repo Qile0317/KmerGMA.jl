@@ -28,7 +28,8 @@ end
 
 export FirstMatch
 
-function FindAll(q::ExactSearchQuery{typeof(isequal), LongSequence{DNAAlphabet{4}}}, seq::LongSequence{DNAAlphabet{4}}, answer::Vector{UnitRange} = UnitRange[])
+function FindAll(q::ExactSearchQuery{typeof(isequal), LongSequence{DNAAlphabet{4}}},
+    seq::LongSequence{DNAAlphabet{4}}, answer::Vector{UnitRange} = UnitRange[])
     start = 1
     rg = findfirst(q, view(seq, start: length(seq)))
     while !isnothing(rg)
@@ -44,7 +45,8 @@ function FindAll(q::ExactSearchQuery{typeof(isequal), LongSequence{DNAAlphabet{4
 end
 
 #overlap
-function FindAllOverlap(q::ExactSearchQuery{typeof(isequal), LongSequence{DNAAlphabet{4}}}, seq::LongSequence{DNAAlphabet{4}}, answer::Vector{UnitRange})
+function FindAllOverlap(q::ExactSearchQuery{typeof(isequal), LongSequence{DNAAlphabet{4}}},
+    seq::LongSequence{DNAAlphabet{4}}, answer::Vector{UnitRange})
     start = 1
     rg = findfirst(q, view(seq, start: length(seq)))
     while !isnothing(rg)
@@ -60,11 +62,15 @@ function FindAllOverlap(q::ExactSearchQuery{typeof(isequal), LongSequence{DNAAlp
 end
 
 """
-    exactMatch(query::LongSequence{DNAAlphabet{4}},
+    exactMatch(query,
                seq::LongSequence{DNAAlphabet{4}},
                overlap::Bool = true)
 
 Finds all exact matches to a query sequence(dna longsequence) in the given genome assembly as a reader object(seq) or single sequence
+
+query can be a FASTA record, a substring of a dna sequence or a dna longsequence.
+
+seq can be a fasta record, dna (sub)sequence, or fasta READER.
 
 overlap is a boolean argument and is true by default
 
@@ -73,18 +79,28 @@ Returns a dictionary of the identifiers of individual records it found matches i
 The algorithm is simply based on the Biosequences findfirst() function and runs quite fast through entire genomes.
 """
 function exactMatch(query, seq; overlap::Bool = true)
+    if typeof(query) == FASTX.FASTA.Record
+        query = getSeq(query)
+    end
     q = ExactSearchQuery(LongSequence{DNAAlphabet{4}}(query))
-    seq = LongSequence{DNAAlphabet{4}}(seq)
+    if typeof(seq) == FASTX.FASTA.Record
+        seq = getSeq(seq)
+    else
+        seq = LongSequence{DNAAlphabet{4}}(seq)
+    end
     answer = UnitRange[]
-    if overlap==true
+    if overlap
         FindAllOverlap(q, seq, answer)
-    elseif overlap == false
+    else
         FindAll(q,seq, answer)
     end
 end
 
 #had to get rid of some type specifications
 function exactMatch(query, Reader::FASTX.FASTA.Reader{}; overlap::Bool = true)
+    if typeof(query) == FASTX.FASTA.Record
+        query = getSeq(query)
+    end
     q = ExactSearchQuery(LongSequence{DNAAlphabet{4}}(query))
     identify = Dict{String,Vector{UnitRange{Int64}}}()
     for record in Reader

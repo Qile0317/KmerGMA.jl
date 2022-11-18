@@ -29,8 +29,8 @@ function findGenes(;genome::FASTX.FASTA.Reader,
    KD = genKmers(k;withN=true) #generation of kmer dictionary
    refKFV = kfv(genRef(k,ref,KD),KD)
    RV = fill(0.0,5^k)
-   threshold_buffer_tag = " | thr = "*string(thr)*" | buffer = "*string(buffer)
    thr == 0 && (thr = Float64(findthr(ref,refKFV,KD))) #SED threshold estimation
+   threshold_buffer_tag = " | thr = "*string(round(thr))*" | buffer = "*string(buffer)
 
     #genome mining
     for record in genome
@@ -86,7 +86,7 @@ function testFindGenes(;
    genome::String,
    ref::String,
    k::Int64 = 6,
-   windowsize::Int64 = 0, thr::Int64 = 0, buffer::Int64 = 50)
+   windowsize::Int64 = 0, thr::Float64 = 0.0, buffer::Int64 = 50)
 
    k < 4 && error("try a higher value like 6. It is most likely more accurate") #adressing k-value
    windowsize == 0 && (windowsize = avgRecLen(ref)) #finding of adequate windowsize
@@ -96,29 +96,21 @@ function testFindGenes(;
    refKFD = genRef(k,ref,KD) #generation of kmer frequency dict
    refKFV = kfv(refKFD,KD) #generation of kmer frequency dict
    RV = fill(0.0,5^k)
-   threshold_buffer_tag = " | thr = "*string(thr)*" | buffer = "*string(buffer)
    results = FASTX.FASTA.Record[]
-   thr == 0 && (thr = Float64(findthr(ref,refKFD,KD))) #SED threshold estimation
+   if thr == 0.0
+      thr += findthr(ref,refKFD,KD)
+   end #SED threshold estimation I tried to do it on 1 line before but it didnt work??
+   threshold_buffer_tag = " | thr = "*string(round(thr))*" | buffer = "*string(buffer)
 
-    #genome mining, code copied from gma()
-   for rec in genome
-      test_gma(k=k, record = rec, refVec =refKFV,
-      windowsize = windowsize, kmerDict = KD,
-      path=results, thr=thr, buff=buffer,
-      rv=copy(RV), #from benchmarking it seems copying isnt that slow?
-      thrbuff=threshold_buffer_tag)
+   open(FASTX.FASTA.Reader, genome) do reader
+      for rec in reader
+         test_gma(k=k, record = rec, refVec =refKFV,
+         windowsize = windowsize, kmerDict = KD,
+         path=results, thr=thr, buff=buffer,
+         rv=copy(RV), #from benchmarking it seems copying isnt that slow?
+         thrbuff=threshold_buffer_tag)
+      end
    end
-   close(ref)
-   close(genome)
    return results
 end
 export testFindGenes
-
-tf = "test/Loci.fasta"
-gf = "test/Alp_V_ref.fasta"
-#open(FASTX.FASTA.Reader,tf) do reference
-#    open(FASTX.FASTA.Reader,gf) do target
-#        KmerGMA.testFindGenes(genome = target, ref = reference)
-#    end
-#end
-#looks like 2 readers cant be open at the same time, I see...

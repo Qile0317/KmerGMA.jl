@@ -76,7 +76,7 @@ function findthr(refseqs::String, refKFV::Dict{LongSequence{DNAAlphabet{4}}, Flo
     return answer + buff
 end
 
-function findthr(refseqs::FASTX.FASTA.Reader{TranscodingStreams.NoopStream{IOStream}},
+function findthr(refseqs::FASTX.FASTA.Reader,
     refKFV::Dict{LongSequence{DNAAlphabet{4}}, Float64},
     KD::Dict{LongSequence{DNAAlphabet{4}}, Int64};
     buff::Union{Int64,Float64} = 25)

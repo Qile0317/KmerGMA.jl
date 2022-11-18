@@ -12,7 +12,6 @@ Distances = "b4f34e82-e78d-54a5-968a-f98e89d6e8f7"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 FASTX = "c2308a5c-f048-11e8-3e8a-31650f418d12"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-TranscodingStreams = "3bb67fe8-82b1-5028-8e26-92a6c54297fa"
 
 [compat]
 BioSequences = "3"

@@ -77,11 +77,8 @@ end
         67.84098639455782, 67.84098639455782, 61.864795918367335,
         84.10289115646258, 95.00765306122447, 113.88860544217685]
     end
-end
 
-@testset "API.jl" begin
-
-    #testing test_gma which mirrors the real gma
+    #trying the testing version of the gma for a record
     reference = open(FASTX.FASTA.Reader, tf)
     target = open(FASTX.FASTA.Reader, gf)
     #def variables
@@ -107,17 +104,26 @@ end
 
     close(reference)
     close(target)
-
-    #testing the testFindGenes which mirrors the real API for the gma.. whats wrong with the reading???
-    #open(FASTX.FASTA.Reader, tf) do REF
-    #    open(FASTX.FASTA.Reader, gf) do TARG
-    #        @test testFindGenes(genome = TARG, ref = REF) == []
-    #    end
-    #end
 end
 
-"""
-#exactmatch has to be revamped because of the FASTX update... ackkkkk it was working before...
+@testset "API.jl" begin
+    #try a version with a lowered SED
+    @test testFindGenes(genome = GF, ref = tf, thr = 100.0) == [FASTX.FASTA.Record(
+    "AM773548.1 | SED = 98.17 | Pos = 6852:7141 | thr = 100.0 | buffer = 50",
+    dna"TCCTGACCAGG")]
+
+    @test testFindGenes(genome = GF, ref = tf) == FASTX.FASTA.Record[FASTA.Record(
+    "JQ684648.1 | SED = 130.8 | Pos = 8543:8832 | thr = 371.0 | buffer = 50", dna"CCGATTCACCA"),
+    FASTA.Record("JQ684648.1 | SED = 110.6 | Pos = 20425:20714 | thr = 371.0 | buffer = 50",
+    dna"GAATCCATGAA"), FASTA.Record("AM773729.1 | SED = 130.8 | Pos = 685:974 | thr = 371.0 | buffer = 50",
+    dna"GGCCGATTCAC"), FASTA.Record("AM773729.1 | SED = 110.6 | Pos = 12791:13080 | thr = 371.0 | buffer = 50",
+    dna"GAATCCATGAA"), FASTA.Record("AM773548.1 | SED = 98.17 | Pos = 6852:7141 | thr = 371.0 | buffer = 50",
+    dna"GACTCCGTGAA"), FASTA.Record("AM773548.1 | SED = 368.9 | Pos = 23826:24115 | thr = 371.0 | buffer = 50",
+    dna"TGCCTGGTGGC"), FASTA.Record("AM773548.1 | SED = 298.9 | Pos = 23931:24220 | thr = 371.0 | buffer = 50",
+    dna"TGATGGCAGCA"), FASTA.Record("AM773548.1 | SED = 130.7 | Pos = 33845:34134 | thr = 371.0 | buffer = 50",
+    dna"ATTCACCATCT")]
+end
+
 @testset "ExactMatch.jl" begin
     #exactMatch set - single sequence
     @test exactMatch(dna"GAG",dna"CCCCCCCGAGCTTTT") == [8:10]
@@ -126,10 +132,22 @@ end
     @test exactMatch(dna"GAG",dna"CGAGAGAGAAGGCCGAGCTTTT",
     overlap = false) == [2:4, 6:8, 15:17]
     @test exactMatch(dna"GAG",dna"CCCCCCTTT") == nothing
-    #@test open(FASTX.FASTA.Reader,tf) do io
-    #    exactMatch(getSeq(first(io))[42:69],
-    #    io) == Dict("AM773729|IGHV1-1*01|Vicugna" => [42:69])
-    #end #this doesnt work... it used to...
+
+    #testing a subseq of the first sequence of a reader as a dna seq
+    @test open(FASTX.FASTA.Reader,tf) do io
+        subseq = getSeq(first(io))[42:69] #its a record, so its testing 2 things at once
+        open(FASTX.FASTA.Reader,tf) do io2
+            exactMatch(subseq, io2) == Dict("AM773729|IGHV1-1*01|Vicugna" => [42:69])
+        end
+    end
+
+    #testing a seq itself but as a record
+    @test open(FASTX.FASTA.Reader,tf) do io
+        subseq = first(io)
+        open(FASTX.FASTA.Reader,tf) do io2
+            exactMatch(subseq, io2) == Dict("AM773729|IGHV1-1*01|Vicugna" => [1:296])
+        end
+    end
 
     #exactMatch - reader
     @test open(FASTX.FASTA.Reader,tf) do io
@@ -140,10 +158,5 @@ end
         Dict("AM773729|IGHV1-1*01|Vicugna" => [174:178],
         "AM939700|IGHV1S5*01|Vicugna" => [174:178])
     end
-    #@test open(FASTX.FASTA.Reader,tf) do io
-    #    exactMatch(getSeq(first(io)),
-    #    io) == Dict("AM773729|IGHV1-1*01|Vicugna" => [1:296])
-    #end #doesnt work, used to work..
-    #cflength like a few other functions depend on FASTA.seqlen() which doesnt work in testing for some reason...
+    #cflength like a few other functions isnt too relevant
 end
-"""

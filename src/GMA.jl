@@ -204,20 +204,23 @@ end
 
 ####################################################################
 #faster one for record, essential for GMA!!!!
+"""
+"""
 function gma(;
     k::Int64,
     record::FASTX.FASTA.Record,
     refVec::Vector{Float64},
     windowsize::Int64,
     kmerDict::Dict{LongSequence{DNAAlphabet{4}}, Int64},
-    path::String,
     thr::Float64,
     buff::Int64,
     rv::Vector{Float64},
-    thrbuff::String)
+    thrbuff::String,
+    mode::String = "write",
+    path::String = "noPath") #"return", "print"
 
     #initial operations
-    seq = FASTA.sequence(LongSequence{DNAAlphabet{4}}, record)
+    seq = getSeq(record)
     @views curr = fasterKF(k,seq[1:windowsize],kmerDict,rv) #Theres an even faster way with unsigned ints and bits.
     currSqrEuc = Distances.sqeuclidean(refVec,curr)
 
@@ -225,6 +228,7 @@ function gma(;
     CMI = 2
     stop = true
     currminim = currSqrEuc
+    if mode == "return"; path = FASTX.FASTA.Record[] end
 
     for i in 1:(length(seq)-windowsize) #big change: starts from 1 so i dont need to -1 nymore
         #first operation
@@ -259,8 +263,15 @@ function gma(;
                 LongSequence{DNAAlphabet{4}}(seq[i-buff:i+windowsize-1+buff]))
 
                 #write in the record to the file
-                FASTA.Writer(open(path, "a"), width = 95) do writer
-                    write(writer, rec) # a FASTA.Record
+                if mode == "write"
+                    FASTA.Writer(open(path, "a"), width = 95) do writer
+                        write(writer, rec) # a FASTA.Record
+                    end
+                elseif mode == "print"
+                    println(">"*String(FASTX.FASTA.description(rec)))
+                    println(getSeq(rec))
+                elseif mode == "return"
+                    push!(path, rec)
                 end
 
                 #reset
@@ -269,12 +280,28 @@ function gma(;
             end
         end
     end
+    if mode == "return"; return path end
 end
 
 #testing version that pushes instead of writing. Also it could actually be a viable alternative
 
 #testing version, same code as gma but doesnt write to a file and instead pushes to a vector
 #it only pushes nucleotides 10 to 20 for testing purposes
+"""
+    test_gma(;
+        k::Int64,
+        record::FASTX.FASTA.Record,
+        refVec::Vector{Float64},
+        windowsize::Int64,
+        kmerDict::Dict{LongSequence{DNAAlphabet{4}}, Int64},
+        path::Vector{FASTX.FASTA.Record},
+        thr::Float64,
+        buff::Int64,
+        rv::Vector{Float64},
+        thrbuff::String)
+
+Testing version of the gma, it only returns [10:20] th nucleotides of the matches
+"""
 function test_gma(;
     k::Int64,
     record::FASTX.FASTA.Record,
