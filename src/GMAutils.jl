@@ -7,10 +7,10 @@
 """
     getSeq(FASTA.Record)
 
-get the dna longsequence of a fasta record
+get the dna longsequence of a fasta record, its simply calling FASTX
 """
 function getSeq(seq::FASTX.FASTA.Record)
-     LongSequence{DNAAlphabet{4}}(FASTX.FASTA.sequence(seq))
+     return FASTX.FASTA.sequence(LongSequence{DNAAlphabet{4}}, seq)
  end
 
 export getSeq

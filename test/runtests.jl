@@ -4,6 +4,7 @@ using Test, BioSequences, FASTX
 #testing variables
 tf = "Alp_V_ref.fasta"
 gf = "Alp_V_locus.fasta"
+GF = "Loci.fasta"
 KD = Dict(dna"T" => 3, dna"A" => 1, dna"G" => 4, dna"N" => 5, dna"C" => 2)
 kf = [0.0, 0.0, 1.0, 2.0, 0.0, 1.0, 0.0, 0.0, 0.0,
 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
@@ -16,7 +17,8 @@ dna"A" => 63.25, dna"G" => 89.26190476190476, dna"N" => 0.0)
         recordCount(io) == 84
     end
 
-    @test flipDict(Dict(dna"ATG" => 69, dna"ATGCCCCC" => 420)) == Dict(69 => dna"ATG", 420 => dna"ATGCCCCC")
+    @test flipDict(Dict(dna"ATG" => 69, dna"ATGCCCCC" =>
+    420)) == Dict(69 => dna"ATG", 420 => dna"ATGCCCCC")
 
     @test kfv(Dict(dna"A" => 69.0, dna"G" => 420.0,
     dna"C" => 0.0,dna"N" => 1.0, dna"T" => 42.0),
@@ -51,9 +53,9 @@ end
         genRef(1,io,KD) == KFV
     end
 
-    #@test open(FASTX.FASTA.Reader,tf) do io
-    #    findthr(io,KFV,KD) == 147.38860544217687
-    #end #looks like there are issues with opening the file?
+    @test open(FASTX.FASTA.Reader,tf) do io
+        findthr(io,KFV,KD) == 147.38860544217687
+    end
 
     @test findthr(tf,KFV,KD) == 147.38860544217687
 end
@@ -61,13 +63,20 @@ end
 @testset "GMA.jl" begin
     @test fasterKF(1,dna"GAGATAC",KD,[0.0,0.0,0.0,0.0,0.0]) == [3.0,1.0,1.0,2.0,0.0]
 
-    #@test open(FASTX.FASTA.Reader,tf) do io #this is redundant
-        #queryMatch(1,first(io),KFV,KD,289) == [71.2219387755102,
-        #84.10289115646258, 84.10289115646258, 84.10289115646258, 80.1267006802721,
-        #104.36479591836734, 117.26955782312923]
-    #end #this is outdated and probably doesnt work.
+    #testing GMA euclidean version
+    reference = open(FASTX.FASTA.Reader, tf)
+    kd = genKmers(1,withN=true)
+    refKFD = genRef(1,reference,kd) #generation of kmer frequency dict
+    refKFV = kfv(refKFD,kd)
+    close(reference)
 
-    #problem: now that im using @views, i may have to revamp everything to the type of seqView...
+    @test open(FASTX.FASTA.Reader,tf) do io #this is redundant
+        eucGMA(k = 1, record = first(io), refVec = refKFV,
+        windowsize = 289, kmerDict = kd, thr = 200.0, buff = 25,
+        rv = fill(0.0,5)) == [71.2219387755102, 84.10289115646258,
+        67.84098639455782, 67.84098639455782, 61.864795918367335,
+        84.10289115646258, 95.00765306122447, 113.88860544217685]
+    end
 end
 
 @testset "API.jl" begin
@@ -107,6 +116,7 @@ end
     #end
 end
 
+"""
 #exactmatch has to be revamped because of the FASTX update... ackkkkk it was working before...
 @testset "ExactMatch.jl" begin
     #exactMatch set - single sequence
@@ -136,3 +146,4 @@ end
     #end #doesnt work, used to work..
     #cflength like a few other functions depend on FASTA.seqlen() which doesnt work in testing for some reason...
 end
+"""

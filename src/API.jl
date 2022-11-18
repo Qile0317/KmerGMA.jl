@@ -73,16 +73,23 @@ end
 """
 
 """
-testing function only
+   testFindGenes(;genome::String,
+                  ref::String,
+                  k::Int64 = 6,
+                  windowsize::Int64 = 0,
+                  thr::Int64 = 0,
+                  buffer::Int64 = 50)
+
+testing function only. Returns Vector of FASTA records.
 """
 function testFindGenes(;
-   genome::FASTX.FASTA.Reader,
-   ref::FASTX.FASTA.Reader,
+   genome::String,
+   ref::String,
    k::Int64 = 6,
    windowsize::Int64 = 0, thr::Int64 = 0, buffer::Int64 = 50)
 
    k < 4 && error("try a higher value like 6. It is most likely more accurate") #adressing k-value
-   windowsize == 0 && (windowsize = avgRecLen(ref,true)) #finding of adequate windowsize
+   windowsize == 0 && (windowsize = avgRecLen(ref)) #finding of adequate windowsize
 
    #variables needed for the GMA
    KD = genKmers(k;withN=true) #generation of kmer dictionary
@@ -107,12 +114,11 @@ function testFindGenes(;
 end
 export testFindGenes
 
-"""
-open(FASTX.FASTA.Reader,tf) do reference
-    open(FASTX.FASTA.Reader,gf) do target
-        testFindGenes(genome = target, ref = reference)
-    end
-end
-
-#doesnt work..... ugh
-"""
+tf = "test/Loci.fasta"
+gf = "test/Alp_V_ref.fasta"
+#open(FASTX.FASTA.Reader,tf) do reference
+#    open(FASTX.FASTA.Reader,gf) do target
+#        KmerGMA.testFindGenes(genome = target, ref = reference)
+#    end
+#end
+#looks like 2 readers cant be open at the same time, I see...

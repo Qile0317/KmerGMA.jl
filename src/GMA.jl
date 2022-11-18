@@ -1,91 +1,59 @@
 #using Pkg
 #Pkg.add(PackageSpec(name="NextGenSeqUtils", rev="Missing-LongCharSeq-fix", url = "https://github.com/MurrellGroup/NextGenSeqUtils.jl.git"))
 
-#using BioSequences, FASTX, Plots, ProgressMeter, Distances, PkgTemplates, Pkg, DataFrames, Distances, DelimitedFiles#, Distributed
-
-#implementation of functions needed for the first step of the optimized method
-
 #this version just treates N as another nucleotide. it actually seems to work well as Ns incur a high sqeuclidean dist.
-function queryMatch(k::Int64, record::FASTX.FASTA.Record,
-    IMGTref::Dict{LongSequence{DNAAlphabet{4}}, Float64},
+#EucVec version of GMA
+"""
+    eucGma(;
+        k::Int64,
+        record::FASTX.FASTA.Record,
+        refVec::Vector{Float64},
+        windowsize::Int64,
+        kmerDict::Dict{LongSequence{DNAAlphabet{4}}, Int64},
+        thr::Float64,
+        buff::Int64,
+        rv::Vector{Float64})
+
+Testing version of the GMA that returns a euclidean vector instead of the matches.
+"""
+function eucGMA(;
+    k::Int64,
+    record::FASTX.FASTA.Record,
+    refVec::Vector{Float64},
+    windowsize::Int64,
     kmerDict::Dict{LongSequence{DNAAlphabet{4}}, Int64},
-    windowsize::Int64 = 0)
-    if windowsize == 0
-        windowsize = avgRecLen(IMGTref)
-    end
-    seq = FASTA.sequence(record)
-    IMGTrefVec = cvDicVec(IMGTref,kmerDict)
-    lkd = length(kmerDict)
-    rv = fill(0.0,lkd)
-    curr = kmerFreq(k,seq[1:windowsize],kmerDict)
+    thr::Float64,
+    buff::Int64,
+    rv::Vector{Float64})
 
-    currSqrEuc = Distances.sqeuclidean(IMGTrefVec,curr) #CURR IS A DICTUINARY
-    EucVec = Float64[currSqrEuc]
+    #initial operations
+    seq = getSeq(record)
+    @views curr = fasterKF(k,seq[1:windowsize],kmerDict,rv) #Theres an even faster way with unsigned ints and bits.
+    currSqrEuc = Distances.sqeuclidean(refVec,curr)
+    EucVec = [currSqrEuc]
 
-    #iteration with sliding window
-    for i in 2:(length(seq)-windowsize)
+    for i in 1:(length(seq)-windowsize) #big change: starts from 1 so i dont need to -1 nymore
         #first operation
-
         #zeroth kmer
-        zerokInt = kmerDict[seq[i-1:i+k-2]] #if i just shift everything left it'd save the subtraction time right?
-        MinusOld = (IMGTrefVec[zerokInt]-curr[zerokInt])^2
-        ZeroOld = curr[zerokInt]
+        @views zerokInt = kmerDict[seq[i:i+k-1]] #might be slightly faster to predefine
+        @views MinusOld = (refVec[zerokInt]-curr[zerokInt])^2
         curr[zerokInt] -= 1
-        MinusNew = (IMGTrefVec[zerokInt]-curr[zerokInt])^2
+        @views MinusNew = (refVec[zerokInt]-curr[zerokInt])^2
 
         #last kmer
-        KendInt = kmerDict[seq[i+windowsize-k+1:i+windowsize]]
-        EndOld = curr[KendInt]
+        @views KendInt = kmerDict[seq[i+windowsize-k:i+windowsize-1]]
+        @views PlusOld = (refVec[KendInt]-curr[KendInt])^2
         curr[KendInt] += 1
-        PlusNew = (IMGTrefVec[KendInt]-curr[KendInt])^2
-        PlusOld = (IMGTrefVec[KendInt]-EndOld)^2
+        @views PlusNew = (refVec[KendInt]-curr[KendInt])^2
 
-        #second operation. no third
+        #second operation.
         currSqrEuc += PlusNew + MinusNew - PlusOld - MinusOld
         push!(EucVec, currSqrEuc)
     end
     return EucVec
 end
 
-#export queryMatch
-
-#incorporates faster kmer match
-function queryMatchN(k::Int64, record::FASTX.FASTA.Record,
-    IMGTref::Dict{LongSequence{DNAAlphabet{4}}, Float64},
-    kmerDict::Dict{LongSequence{DNAAlphabet{4}}, Int64}, windowsize::Int64,
-    lengthkd::Int64, rv::Vector{Float64})
-
-    seq = FASTA.sequence(record)
-    IMGTrefVec = cvDicVec(IMGTref,kmerDict)
-    curr = fasterKF(k,seq[1:windowsize],kmerDict,rv)
-
-    currSqrEuc = Distances.sqeuclidean(IMGTrefVec,curr) #CURR IS A DUCTUINARY
-    EucVec = Float64[currSqrEuc]
-
-    #iteration with sliding window
-    for i in 2:(length(seq)-windowsize)
-        #first operation
-
-        #zeroth kmer
-        zerokInt = kmerDict[seq[i-1:i+k-2]] #unessecary lol
-        MinusOld = (IMGTrefVec[zerokInt]-curr[zerokInt])^2
-        ZeroOld = curr[zerokInt]
-        curr[zerokInt] -= 1
-        MinusNew = (IMGTrefVec[zerokInt]-curr[zerokInt])^2
-
-        #last kmer
-        KendInt = kmerDict[seq[i+windowsize-k+1:i+windowsize]]
-        EndOld = curr[KendInt]
-        curr[KendInt] += 1
-        PlusNew = (IMGTrefVec[KendInt]-curr[KendInt])^2
-        PlusOld = (IMGTrefVec[KendInt]-EndOld)^2
-
-        #second operation. no third
-        currSqrEuc += PlusNew + MinusNew - PlusOld - MinusOld
-        push!(EucVec, currSqrEuc)
-    end
-    return EucVec
-end
+export eucGMA
 
 #version that prints to repl by finding minima
 function printQueryMatchN(k::Int64, record::FASTX.FASTA.Record, IMGTref::Dict{LongSequence{DNAAlphabet{4}}, Float64}, kmerDict::Dict{LongSequence{DNAAlphabet{4}}, Int64} = nothing,  thr::Union{Float64, Int64} = 180.0,

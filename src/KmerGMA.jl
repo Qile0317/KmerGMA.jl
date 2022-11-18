@@ -1,5 +1,6 @@
 module KmerGMA
-    using BioSequences, FASTX, Distances #WebBlast, Statistics, StringDistances, StatsBase, StatsPlots, DataFrames
+    using BioSequences, FASTX, Distances, TranscodingStreams
+     #WebBlast, Statistics, StringDistances, StatsBase, StatsPlots, DataFrames
     include("simpleExplore.jl")
     include("ExactMatch.jl")
     include("GMAutils.jl")

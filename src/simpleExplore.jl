@@ -49,44 +49,34 @@ export recordCount
 #BIG PROBLEM: I THINK DOING OPEN(FASTA.READER) DOESNT WORK IN FUNCTIONS.
 
 """
-    avgRecLen(reader::FASTX.FASTA.Reader,
-              rnd::Bool = false)
+    avgRecLen(reader;
+              rnd::Bool = true)
 
 get the rounded average length of every record in a FASTA.Reader object. (it can also be a string indicating the path)
 
 rnd is an optional argument for whether the result should be rounded to an Interger.
 """
-function avgRecLen(reader::FASTX.FASTA.Reader, rnd::Bool = true)
+function avgRecLen(reader::FASTX.FASTA.Reader; rnd::Bool = true)
     Alen = 0
     d = 0
     for record in reader
         Alen += FASTX.FASTA.seqsize(record)
         d += 1
     end
-    if rnd
-        return Int64(round(Alen/d))
-    else
-        return Alen/d
-    end
+    rnd ? Int64(round(Alen/d)) : Alen/d
+    close(reader)
 end
 
-function avgRecLen(path::String, rnd::Bool = true)
-    reader = open(FASTX.FASTA.Reader, path)
+function avgRecLen(path::String; rnd::Bool = true)
     Alen = 0
     d = 0
-    for record in reader
-        Alen += FASTX.FASTA.seqsize(record)
-        d += 1
+    open(FASTX.FASTA.Reader, path) do reader
+        for record in reader
+            Alen += FASTX.FASTA.seqsize(record)
+            d += 1
+        end
     end
-    if rnd == true
-        reader = open(FASTA.Reader, path)
-        a = Alen/d
-        return Int64(round(a))
-    else
-        reader = open(FASTA.Reader, path)
-        return Alen/d
-    end
-    close(reader)
+    rnd ? Int64(round(Alen/d)) : Alen/d
 end
 
 export avgRecLen
