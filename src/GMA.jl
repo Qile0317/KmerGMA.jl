@@ -55,156 +55,25 @@ end
 
 export eucGMA
 
-#version that prints to repl by finding minima
-function printQueryMatchN(k::Int64, record::FASTX.FASTA.Record, IMGTref::Dict{LongSequence{DNAAlphabet{4}}, Float64}, kmerDict::Dict{LongSequence{DNAAlphabet{4}}, Int64} = nothing,  thr::Union{Float64, Int64} = 180.0,
-    windowsize::Int64 = nothing, buff::Int64 = 50)
-    thrBuf = " | thr = "*string(thr)*" | buffer = "*string(buff)
-    if isnothing(windowsize)
-        windowsize = avgRecLen(IMGTref)
-    end
-
-    if isnothing(kmerDict)
-        kmerDict = genKmers(k,withN=true)
-    end
-
-    seq = FASTA.sequence(record)
-    IMGTrefVec = cvDicVec(IMGTref,kmerDict)
-    curr = kmerFreq(k,seq[1:windowsize],kmerDict,false)
-    currSqrEuc = Distances.sqeuclidean(IMGTrefVec,curr)
-
-    CMI = 1
-    stop = true
-    currminim = currSqrEuc
-
-    for i in 2:(length(seq)-windowsize)
-        #first operation
-        #zeroth kmer
-        zerokInt = kmerDict[seq[i-1:i+k-2]] #unessecary lol
-        MinusOld = (IMGTrefVec[zerokInt]-curr[zerokInt])^2
-        ZeroOld = curr[zerokInt]
-        curr[zerokInt] -= 1
-        MinusNew = (IMGTrefVec[zerokInt]-curr[zerokInt])^2
-
-        #last kmer
-        KendInt = kmerDict[seq[i+windowsize-k+1:i+windowsize]]
-        EndOld = curr[KendInt]
-        curr[KendInt] += 1
-        PlusNew = (IMGTrefVec[KendInt]-curr[KendInt])^2
-        PlusOld = (IMGTrefVec[KendInt]-EndOld)^2
-
-        #second operation.
-        currSqrEuc += PlusNew + MinusNew - PlusOld - MinusOld
-
-        #third operation
-        if currSqrEuc < thr
-            if currSqrEuc < currminim
-                currminim = currSqrEuc
-                CMI = i
-                stop = false
-            end
-        else
-            if stop == false
-                println(">"*FASTA.identifier(record)*"| SED = "*string(currminim)*" | MatchPos = "*string(CMI)*":"*string(CMI+windowsize)*thrBuf) #i can make it CMI - CMI+windowsize
-                if i-buff > 0 #lol doesnt account for if buffer exceeds end.
-                    println(seq[i-buff:i+windowsize-1+buff])
-                else #this probably also adds time, ill make a slightly faster version later.
-                    println(seq[i:i+windowsize-1+buff])
-                end
-                currminim = currSqrEuc
-                stop = true
-            end
-        end
-    end
-end
-
-#now for the entire reader by printing to repl
-function printQueryMatchN(k::Int64, reader::FASTX.FASTA.Reader, IMGTref::Dict{LongSequence{DNAAlphabet{4}}, Float64}, kmerDict::Dict{LongSequence{DNAAlphabet{4}}, Int64} = nothing,  thr::Union{Float64, Int64} = 180.0,
-    windowsize::Int64 = nothing, buff::Int64 = 50)
-    #lr = recordCount(reader)
-    #c = 0
-    for record in reader
-        #c += 1
-        printQueryMatchN(k, record, IMGTref, kmerDict, thr, windowsize, buff)
-    end
-end
-
-#printQueryMatchN(6, open(FASTA.Reader,LA), V3NRef, genKmers(6,withN=true), 180, 290, 30)
-
-"""
-    writeQueryMatch(k::Int64,
-                    record::FASTX.FASTA.Record,
-                    IMGTref::Dict{LongSequence{DNAAlphabet{4}}, Float64},
-                    kmerDict::Dict{LongSequence{DNAAlphabet{4}}, Int64},
-                    thr::Union{Float64, Int64} = 180.0,
-                    windowsize::Int64 = 0,
-                    buff::Int64 = 50,
-                    path::String = nothing)
-
-A slighty slower query match that writes to a fasta file for a SINGLE FASTA.Record. An optimized version is used in the actual GMA.
-    Its actually really unoptimized.
-"""
-function writeQueryMatch(k::Int64, record::FASTX.FASTA.Record, IMGTref::Dict{LongSequence{DNAAlphabet{4}}, Float64}, kmerDict::Dict{LongSequence{DNAAlphabet{4}}, Int64},  thr::Union{Float64, Int64} = 180.0,
-    windowsize::Int64 = 0, buff::Int64 = 50, path::String = nothing)
-    if buff != 0
-        thrBuf = " | thr = "*string(thr)*" | buffer = "*string(buff)
-    else
-        thrBuf = " | thr = "*string(thr)
-    end
-    if windowsize == 0
-        windowsize = avgRecLen(IMGTref)
-    end
-    seq = FASTA.sequence(record)
-    IMGTrefVec = cvDicVec(IMGTref,kmerDict)
-    curr = kmerFreq(k,seq[1:windowsize],kmerDict,false)
-    currSqrEuc = Distances.sqeuclidean(IMGTrefVec,curr)
-
-    CMI = 1
-    stop = true
-    currminim = currSqrEuc
-
-    for i in 2:(length(seq)-windowsize)
-        #first operation
-        #zeroth kmer
-        zerokInt = kmerDict[seq[i-1:i+k-2]] #unessecary lol
-        MinusOld = (IMGTrefVec[zerokInt]-curr[zerokInt])^2 #i think instead of squaring, doing a bitshift is faster.
-        ZeroOld = curr[zerokInt]
-        curr[zerokInt] -= 1
-        MinusNew = (IMGTrefVec[zerokInt]-curr[zerokInt])^2
-
-        #last kmer
-        KendInt = kmerDict[seq[i+windowsize-k+1:i+windowsize]]
-        EndOld = curr[KendInt]
-        curr[KendInt] += 1
-        PlusNew = (IMGTrefVec[KendInt]-curr[KendInt])^2
-        PlusOld = (IMGTrefVec[KendInt]-EndOld)^2
-
-        #second operation.
-        currSqrEuc += PlusNew + MinusNew - PlusOld - MinusOld
-
-        #third operation
-        if currSqrEuc < thr
-            if currSqrEuc < currminim
-                currminim = currSqrEuc
-                CMI = i
-                stop = false
-            end
-        else
-            if stop == false #in future account for if buffer exceeds end or front
-                rec = FASTA.Record(FASTA.identifier(record), "| SED = "*string(currminim)[1:5]*" | Pos = "*string(CMI)*":"*string(CMI+windowsize)*thrBuf, seq[i-buff:i+windowsize-1+buff])
-                w = FASTA.Writer(open("VicPacScan/vicpacscan.fasta", "a"), width = 95)
-                write(w, rec)
-                close(w)
-
-                currminim = currSqrEuc
-                stop = true
-            end
-        end
-    end
-end
-
 ####################################################################
 #faster one for record, essential for GMA!!!!
 """
+    gma(; k::Int64,
+          record::FASTX.FASTA.Record,
+          refVec::Vector{Float64},
+          windowsize::Int64,
+          kmerDict::Dict{LongSequence{DNAAlphabet{4}}, Int64},
+          thr::Float64,
+          buff::Int64,
+          rv::Vector{Float64},
+          thrbuff::String,
+          mode::String = "write",
+          path::String = "noPath"
+          resultVec::Vector{FASTA.Record} = FASTA.Record[])
+
+the main genome mining algorithm for a single record. either prints, or edit a vector or file in place
+
+the ```mode``` argument has 3 valid imputs: "write", "return", "print"
 """
 function gma(;
     k::Int64,
@@ -216,8 +85,9 @@ function gma(;
     buff::Int64,
     rv::Vector{Float64},
     thrbuff::String,
-    mode::String = "write",
-    path::String = "noPath") #"return", "print"
+    mode::String = "write",  #"return", "print"
+    path::String = "noPath",
+    resultVec::Vector{FASTA.Record} = FASTA.Record[])
 
     #initial operations
     seq = getSeq(record)
@@ -228,9 +98,8 @@ function gma(;
     CMI = 2
     stop = true
     currminim = currSqrEuc
-    if mode == "return"; path = FASTX.FASTA.Record[] end
 
-    for i in 1:(length(seq)-windowsize) #big change: starts from 1 so i dont need to -1 nymore
+    for i in 1:(length(seq)-windowsize) 
         #first operation
         #zeroth kmer
         @views zerokInt = kmerDict[seq[i:i+k-1]] #might be slightly faster to predefine
@@ -255,23 +124,22 @@ function gma(;
                 stop = false
             end
         else
-            if stop == false #in future account for if buffer exceeds end or front
+            if !stop #in future account for if buffer exceeds end or front
                 #create the record of the match
                 rec = FASTA.Record(String(FASTA.identifier(record))*" | SED = "*
                 string(currminim)[1:5]*" | Pos = "*string(CMI+1)*":"*string(CMI+
                 windowsize+1)*thrbuff,
                 LongSequence{DNAAlphabet{4}}(seq[i-buff:i+windowsize-1+buff]))
 
-                #write in the record to the file
                 if mode == "write"
                     FASTA.Writer(open(path, "a"), width = 95) do writer
-                        write(writer, rec) # a FASTA.Record
+                        write(writer, rec)
                     end
                 elseif mode == "print"
                     println(">"*String(FASTX.FASTA.description(rec)))
                     println(getSeq(rec))
-                elseif mode == "return"
-                    push!(path, rec)
+                else #if mode == "return"
+                    push!(resultVec, rec)
                 end
 
                 #reset
@@ -280,9 +148,9 @@ function gma(;
             end
         end
     end
-    if mode == "return"; return path end
 end
 
+export gma
 #testing version that pushes instead of writing. Also it could actually be a viable alternative
 
 #testing version, same code as gma but doesnt write to a file and instead pushes to a vector
@@ -300,7 +168,7 @@ end
         rv::Vector{Float64},
         thrbuff::String)
 
-Testing version of the gma, it only returns [10:20] th nucleotides of the matches
+Testing version of the gma, it only returns [10:20] nucleotides of the matches
 """
 function test_gma(;
     k::Int64,

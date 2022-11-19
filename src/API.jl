@@ -1,53 +1,71 @@
 """
-   findGenes(; genome::FASTX.FASTA.Reader,
-               ref::FASTX.FASTA.Reader,
-               fileloc::String,
+   findGenes(; genome::String,
+               ref::String,
+               mode = "return",
+               fileloc::String = "noPath",
                k::Int64 = 6,
                windowsize::Int64 = 0,
-               print::Bool = false,
                thr::Int64 = 0,
                buffer::Int64 = 50,
-               BLAST = true)
+               BLAST = false,
+               resultVec::Vector{FASTA.Record} = FASTA.Record[],)
 
-The main API to find all matches. Its impportant that the genome to be scanned is a reader object.
+The main API to find all matches. Its impportant that the genome and ref arguments are fasta file locations.
+
+FASTQ, RNA and AA compaibility will be added in the future
 
 The ref argument is a reader of reference FASTA sequences. fileloc is simply the location of a blank file to read the matches to.
 
-Unfinished. The print and BLAST arguments are currently useless.
+There are three modes, return, write, print. Write requires a file location string of a fasta file.
+
+Unfinished docs. The BLAST argument is currently useless.
 """
-function findGenes(;genome::FASTX.FASTA.Reader,
-   ref::FASTX.FASTA.Reader, fileloc::String,
-   k::Int64 = 6, windowsize::Int64 = 0,
-   print::Bool = false, thr::Int64 = 0,
-   buffer::Int64 = 50, BLAST = true)
+function findGenes(;
+   genome::String, 
+   ref::String,
+   mode = "return",
+   fileloc::String = "noPath",
+   k::Int64 = 6, 
+   windowsize::Int64 = 0,
+   thr::Float64 = 0.0, 
+   buffer::Int64 = 50,
+   BLAST = false, 
+   results::Vector{FASTA.Record} = FASTA.Record[])
 
    #managing undeclared variables
    k < 4 && error("try a higher value like 6. It is most likely more accurate") #adressing k-value
-   windowsize == 0 && (windowsize = avgRecLen(ref,true)) #finding of adequate windowsize
+   if windowsize == 0; windowsize = avgRecLen(ref) end
 
    #variables needed for the GMA
    KD = genKmers(k;withN=true) #generation of kmer dictionary
-   refKFV = kfv(genRef(k,ref,KD),KD)
+   refKFD = genRef(k,ref,KD) #generation of kmer frequency dict
+   refKFV = kfv(refKFD,KD) #generation of kmer frequency dict
    RV = fill(0.0,5^k)
-   thr == 0 && (thr = Float64(findthr(ref,refKFV,KD))) #SED threshold estimation
+   if thr == 0.0
+      thr += findthr(ref,refKFD,KD)
+   end #SED threshold estimation I tried to do it on 1 line before but it didnt work??
    threshold_buffer_tag = " | thr = "*string(round(thr))*" | buffer = "*string(buffer)
 
-    #genome mining
-    for record in genome
-       gma(k=k, record = record, refVec =refKFV,
-       windowsize = windowsize, kmerDict = KD,
-       path=fileloc, thr=thr, buff=buffer,
-       rv=copy(RV), #from benchmarking it seems copying isnt that slow?
-       thrbuff=threshold_buffer_tag)
-    end
-    close(ref)
-    close(genome)
+   #genome mining
+   open(FASTA.Reader, genome) do io
+      for rec in io
+         gma(k=k, record = rec, refVec = refKFV,
+         windowsize = windowsize, kmerDict = KD,
+         path=fileloc, thr=thr, buff=buffer,
+         rv=copy(RV), #from benchmarking it seems copying isnt that slow?
+         thrbuff=threshold_buffer_tag,
+         mode = mode, resultVec = results)
+      end
+   end
+   if mode == "return"; (return results) end
     #if BLAST
       #blastseq = eqBLAST(output) #blasting
       #return blastseq #unfinished
    #end
 end
 export findGenes
+
+findGenes(genome = "test/Loci.fasta", ref = "test/Alp_V_ref.fasta")
 
 """
 #old testing code

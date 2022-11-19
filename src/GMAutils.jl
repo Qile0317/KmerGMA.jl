@@ -148,4 +148,4 @@ end
 
 export kmerFreq
 
-export genKmers, sixMerNDict
+export genKmers

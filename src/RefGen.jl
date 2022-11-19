@@ -29,6 +29,7 @@ function genRef(k::Int64, reader::FASTX.FASTA.Reader, kmerDict::Dict{LongSequenc
         answer[first(key)] /= len
     end
     return answer
+    #dont close reader!!
 end
 
 function genRef(k::Int64, path::String, kmerDict::Dict{LongSequence{DNAAlphabet{4}}, Int64})
@@ -75,7 +76,7 @@ function findthr(refseqs::String, refKFV::Dict{LongSequence{DNAAlphabet{4}}, Flo
     end
     return answer + buff
 end
-
+#findthr should be able to just take KFV instead of requireing KFD. its an ez fix tho ill do it later
 function findthr(refseqs::FASTX.FASTA.Reader,
     refKFV::Dict{LongSequence{DNAAlphabet{4}}, Float64},
     KD::Dict{LongSequence{DNAAlphabet{4}}, Int64};
