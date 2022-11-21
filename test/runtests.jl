@@ -77,44 +77,36 @@ end
         84.10289115646258, 95.00765306122447, 113.88860544217685]
     end
 
-    #trying the testing version of the gma for a record
-    kd = genKmers(6,withN = true)
-    reference = open(FASTX.FASTA.Reader, tf)
-    refKFV = kfv(genRef(6,reference,kd),kd) #generation of kmer frequency dict and converting
-    close(reference)
-
-    #def variables
-    inp = FASTA.Record[]
+    #def variables for testing 
     target = open(FASTX.FASTA.Reader, gf)
     goal = first(target)
     close(target)
 
-    test_gma(k=6,record=goal,
-    refVec = refKFV, windowsize = 289,
-    kmerDict = kd,
-    path = inp,
-    thr = 250.0,
-    buff = 20,
-    rv= fill(0.0,5^6),
-    thrbuff = " test ")
+    @testset "test_gma" begin
+        #trying the testing version of the gma for a record
+        kd = genKmers(6,withN = true)
+        reference = open(FASTX.FASTA.Reader, tf)
+        refKFV = kfv(genRef(6,reference,kd),kd) #generation of kmer frequency dict and converting
+        close(reference)
 
-    """
-    BenchmarkTools.Trial: 668 samples with 1 evaluation.
-    Range (min … max):  6.143 ms … 12.836 ms  ┊ GC (min … max): 0.00% … 33.89%
-    Time  (median):     6.983 ms              ┊ GC (median):    0.00%
-    Time  (mean ± σ):   7.479 ms ±  1.620 ms  ┊ GC (mean ± σ):  8.96% ± 13.45%
+        inp = FASTA.Record[]
 
-       █▅     █▄▁
-      ███▅▄▃▄████▄▃▃▂▂▃▂▂▂▁▁▁▁▁▁▁▁▁▁▁▂▁▁▁▁▁▁▁▂▃▄▄▃▂▂▂▃▅▄▃▃▂▂▂▁▂▂ ▃
-      6.14 ms        Histogram: frequency by time        11.9 ms <
+        test_gma(k=6,record=goal,
+        refVec = refKFV, windowsize = 289,
+        kmerDict = kd,
+        path = inp,
+        thr = 250.0,
+        buff = 20,
+        rv= fill(0.0,5^6),
+        thrbuff = " test ") #abt 7.5ms from benchmarking
 
-     Memory estimate: 7.67 MiB, allocs estimate: 164551.
-    """
-
-    @test inp == [FASTA.Record("AM773548.1 | SED = 98.17 | Pos = 6852:7141 test ",
-    dna"GGTCCGTCAGG"), FASTA.Record("AM773548.1 | SED = 130.7 | Pos = 33845:34134 test ",
-    dna"CAATGCCATGG"), FASTA.Record("AM773548.1 | SED = 249.1 | Pos = 33953:34242 test ",
-    dna"CCATGGGCTGG")]
+        @test inp[1] == FASTA.Record("AM773548.1 | SED = 98.17 | Pos = 6852:7141 test ",
+        dna"GGTCCGTCAGG")
+        @test inp[2] == FASTA.Record("AM773548.1 | SED = 130.7 | Pos = 33845:34134 test ",
+        dna"CAATGCCATGG")
+        @test inp[3] == FASTA.Record("AM773548.1 | SED = 249.1 | Pos = 33953:34242 test ",
+        dna"CCATGGGCTGG") #the third one is just the second one's end bit lol
+    end
 
     @testset "gma_return_mode" begin
         #reference, genome is already deinfed
@@ -146,22 +138,46 @@ end
 
 @testset "API.jl" begin
     #try a version with a lowered SED
-    @test testFindGenes(genome = GF, ref = tf, thr = 100.0) == [FASTX.FASTA.Record(
-    "AM773548.1 | SED = 98.17 | Pos = 6852:7141 | thr = 100.0 | buffer = 50",
-    dna"TCCTGACCAGG")]
+    @testset "testFindGenes" begin
+        @test testFindGenes(genome = GF, ref = tf, thr = 100.0) == [FASTX.FASTA.Record(
+        "AM773548.1 | SED = 98.17 | Pos = 6852:7141 | thr = 100.0 | buffer = 50",
+        dna"TCCTGACCAGG")]
 
-    @test testFindGenes(genome = GF, ref = tf) == FASTX.FASTA.Record[FASTA.Record(
-    "JQ684648.1 | SED = 130.8 | Pos = 8543:8832 | thr = 371.0 | buffer = 50", dna"CCGATTCACCA"),
-    FASTA.Record("JQ684648.1 | SED = 110.6 | Pos = 20425:20714 | thr = 371.0 | buffer = 50",
-    dna"GAATCCATGAA"), FASTA.Record("AM773729.1 | SED = 130.8 | Pos = 685:974 | thr = 371.0 | buffer = 50",
-    dna"GGCCGATTCAC"), FASTA.Record("AM773729.1 | SED = 110.6 | Pos = 12791:13080 | thr = 371.0 | buffer = 50",
-    dna"GAATCCATGAA"), FASTA.Record("AM773548.1 | SED = 98.17 | Pos = 6852:7141 | thr = 371.0 | buffer = 50",
-    dna"GACTCCGTGAA"), FASTA.Record("AM773548.1 | SED = 368.9 | Pos = 23826:24115 | thr = 371.0 | buffer = 50",
-    dna"TGCCTGGTGGC"), FASTA.Record("AM773548.1 | SED = 298.9 | Pos = 23931:24220 | thr = 371.0 | buffer = 50",
-    dna"TGATGGCAGCA"), FASTA.Record("AM773548.1 | SED = 130.7 | Pos = 33845:34134 | thr = 371.0 | buffer = 50",
-    dna"ATTCACCATCT")] #takes about 125 miliseconds
+        @test testFindGenes(genome = GF, ref = tf) == FASTX.FASTA.Record[FASTA.Record(
+        "JQ684648.1 | SED = 130.8 | Pos = 8543:8832 | thr = 371.0 | buffer = 50", dna"CCGATTCACCA"),
+        FASTA.Record("JQ684648.1 | SED = 110.6 | Pos = 20425:20714 | thr = 371.0 | buffer = 50",
+        dna"GAATCCATGAA"), FASTA.Record("AM773729.1 | SED = 130.8 | Pos = 685:974 | thr = 371.0 | buffer = 50",
+        dna"GGCCGATTCAC"), FASTA.Record("AM773729.1 | SED = 110.6 | Pos = 12791:13080 | thr = 371.0 | buffer = 50",
+        dna"GAATCCATGAA"), FASTA.Record("AM773548.1 | SED = 98.17 | Pos = 6852:7141 | thr = 371.0 | buffer = 50",
+        dna"GACTCCGTGAA"), FASTA.Record("AM773548.1 | SED = 368.9 | Pos = 23826:24115 | thr = 371.0 | buffer = 50",
+        dna"TGCCTGGTGGC"), FASTA.Record("AM773548.1 | SED = 298.9 | Pos = 23931:24220 | thr = 371.0 | buffer = 50",
+        dna"TGATGGCAGCA"), FASTA.Record("AM773548.1 | SED = 130.7 | Pos = 33845:34134 | thr = 371.0 | buffer = 50",
+        dna"ATTCACCATCT")] #takes about 125 miliseconds
+    end
 
-    #@test findGenes(genome = GF, ref = tf) == [] <- why doesnt it work...
+    @testset "findGenes_noArgs" begin
+        a = findGenes(genome = GF, ref = tf)
+        @test FASTX.FASTA.description(a[1]) == "JQ684648.1 | SED = 130.8 | Pos = 8543:8832 | thr = 371.0 | buffer = 50"
+        @test getSeq(a[2])[42:96] == dna"AGACAACGCCAAGAACACGCTGTATCTGCAAATGAACAGTCTGAAATCTGAGGAC"
+        @test FASTX.FASTA.description(a[8]) == "AM773548.1 | SED = 130.7 | Pos = 33845:34134 | thr = 371.0 | buffer = 50"
+        @test getSeq(a[8])[1:70] == dna"GAAGGGCCGATTCACCATCTCCAGAGACAACGCCAAGAACACGGTGTATCTGCAAATGAACAGCCTGAAA"
+        @test getSeq(a[8])[234:289] == dna"AGGAGATTACAGTTATAATCCTTGGTTTCCTTTTCCCGCCCATCAACTCTACTACA"
+        @test length(getSeq(a[7])) == 389
+    end
+    
+    @testset "findGenes_thr=100" begin
+        a = findGenes(genome = GF, ref = tf, thr = 100.0)
+        @test getSeq(a[1])[1:60] == dna"GTGACAGTCTCCTGACCAGGATGTCTTTGTGTTTGCAGGTGTCCAGGCTCAGGTGCAGCT"
+        @test getSeq(b[1])[320:end] == dna"ACGGCCGTGTATTACTGTGCAAAAGACACAGTGAGGGGAAGTCGGTGTGAGCCCAGACACAAACCTCCCT"
+        @test FASTX.FASTA.description(a[1]) == "AM773548.1 | SED = 98.17 | Pos = 6852:7141 | thr = 100.0 | buffer = 50"
+    end
+
+    @testset "findGenes_k=8,thr=140" begin
+        a = findGenes(genome = GF, ref = tf, k=8, thr = 140.0)
+        @test FASTX.FASTA.description(a[1]) == "JQ684648.1 | SED = 125.5 | Pos = 20425:20714 | thr = 140.0 | buffer = 50"
+        @test getSeq(a[3])[1:20] ==  dna"GTCTTTGTGTTTGCAGGTGT"
+    end #uhh im not sure how this happened... the third record came before the second??
+    #I need a buffer test! For when it exceeds end or preceeds start. 
 end
 
 @testset "ExactMatch.jl" begin

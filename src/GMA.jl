@@ -216,21 +216,20 @@ function test_gma(;
                 CMI = i
                 stop = false
             end
-        else
-            if stop == false #in future account for if buffer exceeds end or front
-                #create the record of the match
-                rec = FASTA.Record(String(FASTA.identifier(record))*" | SED = "*
-                string(currminim)[1:5]*" | Pos = "*string(CMI+1)*":"*string(CMI+
-                windowsize+1)*thrbuff,
-                LongSequence{DNAAlphabet{4}}(seq[i-buff:i+windowsize-1+buff])[10:20])
+        elseif !stop
+            #in future account for if buffer exceeds end or front
+            #create the record of the match
+            rec = FASTA.Record(String(FASTA.identifier(record))*" | SED = "*
+            string(currminim)[1:5]*" | Pos = "*string(CMI+1)*":"*string(CMI+
+            windowsize+1)*thrbuff,
+            LongSequence{DNAAlphabet{4}}(seq[i-buff:i+windowsize-1+buff])[10:20])
 
-                #write in the record to the file
-                push!(path, rec)
+            #write in the record to the file
+            push!(path, rec)
 
-                #reset
-                currminim = currSqrEuc
-                stop = true
-            end
+            #reset
+            currminim = currSqrEuc
+            stop = true
         end
     end
 end
@@ -243,6 +242,9 @@ export test_gma
 
 """
 TO DO/TO ASK LIST:
+    -> See how good approximate match is vs levenshtein distance 
+    -> what if 2 unique matches are super close?
+
     -> I gotta adjust for the new FASTX update bc substrs now are StringViews...
     -> BIG THING: In future I want to include D and J genes for comparison, and
         -> make a threshold predictor by taking averages and going 1-2 SD down. although for k=6, usually around SED = 150 - 190 works ok?

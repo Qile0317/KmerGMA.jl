@@ -1,5 +1,5 @@
 """
-   findGenes(; genome::String,
+      findGenes(; genome::String,
                ref::String,
                mode = "return",
                fileloc::String = "noPath",

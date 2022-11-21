@@ -7,8 +7,6 @@
 
 ## Function Documentation
 ```@docs
-genKmers(k::Int64,
-         Dictionary::Bool = true;
-         withN::Bool = false,
-         cumulative::Bool = false)
+    findgenes()
 ```
+The only relevant function for users is ```findgenes()``` which takes a reference set of/individual sequence(s) and scans a genome for approximate homologous matches. This can be applied for finding V genes, for example. 
