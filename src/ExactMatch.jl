@@ -55,7 +55,7 @@ end
 
 """
     exactMatch(query,
-               seq::LongSequence{DNAAlphabet{4}},
+               seq,
                overlap::Bool = true)
 
 Finds all exact matches to a query sequence(dna longsequence) in the given genome assembly as a reader object(seq) or single sequence
