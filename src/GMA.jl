@@ -89,42 +89,40 @@ function gma(;
     path::String = "noPath",
     resultVec::Vector{FASTA.Record} = FASTA.Record[])
 
-    #initial operations
-    seq = getSeq(record)
-    @views curr = fasterKF(k,seq[1:windowsize],kmerDict,rv) #Theres an even faster way with unsigned ints and bits.
-    currSqrEuc = Distances.sqeuclidean(refVec,curr)
+    sl = FASTX.FASTA.seqsize(record)
+    if sl >= windowsize
+        #initial operations for the first window 
+        seq = getSeq(record) #getSeq is slow. Ideally I wanna work with subseqs eventually
+        curr = fasterKF(k,view(seq,1:windowsize),kmerDict,rv) #Theres an even faster way with unsigned ints and bits.
+        currSqrEuc = Distances.sqeuclidean(refVec,curr)
 
-    #defining some variables needed later
-    CMI = 2
-    stop = true
-    currminim = currSqrEuc
+        #defining some variables needed later
+        CMI = 2
+        stop = true
+        currminim = currSqrEuc
 
-    for i in 1:(length(seq)-windowsize) 
-        #first operation
-        #zeroth kmer
-        @views zerokInt = kmerDict[seq[i:i+k-1]] #might be slightly faster to predefine
-        @views MinusOld = (refVec[zerokInt]-curr[zerokInt])^2
-        curr[zerokInt] -= 1
-        @views MinusNew = (refVec[zerokInt]-curr[zerokInt])^2
+        for i in 1:(sl-windowsize) 
+            #first & second operation
+            #zeroth kmer
+            @views zerokInt = kmerDict[view(seq,i:i+k-1)] #might be slightly faster to predefine
+            @views currSqrEuc -= (refVec[zerokInt]-curr[zerokInt])^2 #MinusOld
+            curr[zerokInt] -= 1
+            @views currSqrEuc += (refVec[zerokInt]-curr[zerokInt])^2 #MinusNew
 
-        #last kmer
-        @views KendInt = kmerDict[seq[i+windowsize-k:i+windowsize-1]]
-        @views PlusOld = (refVec[KendInt]-curr[KendInt])^2
-        curr[KendInt] += 1
-        @views PlusNew = (refVec[KendInt]-curr[KendInt])^2
+            #last kmer
+            @views KendInt = kmerDict[view(seq,i+windowsize-k:i+windowsize-1)]
+            @views currSqrEuc -= (refVec[KendInt]-curr[KendInt])^2 #plusOld
+            curr[KendInt] += 1
+            @views currSqrEuc += (refVec[KendInt]-curr[KendInt])^2 #PlusNew
 
-        #second operation.
-        currSqrEuc += PlusNew + MinusNew - PlusOld - MinusOld
-
-        #third operation
-        if currSqrEuc < thr
-            if currSqrEuc < currminim
-                currminim = currSqrEuc
-                CMI = i
-                stop = false
-            end
-        else
-            if !stop #in future account for if buffer exceeds end or front
+            #third operation - the block below !stop's speed is irrelevant as its rare
+            if currSqrEuc < thr
+                if currSqrEuc < currminim
+                    currminim = currSqrEuc
+                    CMI = i
+                    stop = false
+                end
+            elseif !stop #in future account for if buffer exceeds end or front
                 #create the record of the match
                 rec = FASTA.Record(String(FASTA.identifier(record))*" | SED = "*
                 string(currminim)[1:5]*" | Pos = "*string(CMI+1)*":"*string(CMI+
@@ -151,6 +149,10 @@ function gma(;
 end
 
 export gma
+
+#looks like the main issue is that alot of the time is spent reading in the record...
+#now that I think about it... what if I just use the manhattan distance?? wont it just be faster
+
 #testing version that pushes instead of writing. Also it could actually be a viable alternative
 
 #testing version, same code as gma but doesnt write to a file and instead pushes to a vector

@@ -37,11 +37,7 @@ function FindAll(q::ExactSearchQuery{typeof(isequal), LongSequence{DNAAlphabet{4
         start += last(rg)
         rg = findfirst(q, view(seq, start: length(seq)))
     end
-    if answer == UnitRange[]
-        return nothing
-    else
-        return answer
-    end
+    answer == UnitRange[] ? (return nothing) : (return answer)
 end
 
 #overlap
@@ -54,11 +50,7 @@ function FindAllOverlap(q::ExactSearchQuery{typeof(isequal), LongSequence{DNAAlp
         start += first(rg)
         rg = findfirst(q, view(seq, start: length(seq)))
     end
-    if answer == UnitRange[]
-        return nothing
-    else
-        return answer
-    end
+    answer == UnitRange[] ? (return nothing) : (return answer)
 end
 
 """

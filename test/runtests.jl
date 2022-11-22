@@ -168,7 +168,7 @@ end
     @testset "findGenes_thr=100" begin
         a = findGenes(genome = GF, ref = tf, thr = 100.0)
         @test getSeq(a[1])[1:60] == dna"GTGACAGTCTCCTGACCAGGATGTCTTTGTGTTTGCAGGTGTCCAGGCTCAGGTGCAGCT"
-        @test getSeq(b[1])[320:end] == dna"ACGGCCGTGTATTACTGTGCAAAAGACACAGTGAGGGGAAGTCGGTGTGAGCCCAGACACAAACCTCCCT"
+        @test getSeq(a[1])[320:end] == dna"ACGGCCGTGTATTACTGTGCAAAAGACACAGTGAGGGGAAGTCGGTGTGAGCCCAGACACAAACCTCCCT"
         @test FASTX.FASTA.description(a[1]) == "AM773548.1 | SED = 98.17 | Pos = 6852:7141 | thr = 100.0 | buffer = 50"
     end
 

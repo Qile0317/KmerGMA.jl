@@ -1,6 +1,6 @@
 /testing.fasta
 /Manifest.toml
-/upcoming/BLAST.jl
-/upcoming/Plotting.jl
+/src/upcoming
 /test/localtest.jl
 /.vscode
+/performance.ipynb

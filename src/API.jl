@@ -41,10 +41,8 @@ function findGenes(;
    refKFD = genRef(k,ref,KD) #generation of kmer frequency dict
    refKFV = kfv(refKFD,KD) #generation of kmer frequency dict
    RV = fill(0.0,5^k)
-   if thr == 0.0
-      thr += findthr(ref,refKFD,KD)
-   end #SED threshold estimation I tried to do it on 1 line before but it didnt work??
-   threshold_buffer_tag = " | thr = "*string(round(thr))*" | buffer = "*string(buffer)
+   if thr == 0.0; thr += findthr(ref,refKFD,KD) end
+   threshold_buffer_tag = " | thr = "*string(round(thr))*" | buffer = "*string(buffer) # Maybe it would be wise to put which record it is
 
    #genome mining
    open(FASTA.Reader, genome) do io
@@ -63,9 +61,8 @@ function findGenes(;
       #return blastseq #unfinished
    #end
 end
-export findGenes
 
-findGenes(genome = "test/Loci.fasta", ref = "test/Alp_V_ref.fasta")
+export findGenes
 
 """
 #old testing code
