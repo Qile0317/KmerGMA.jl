@@ -2,58 +2,6 @@
 #Pkg.add(PackageSpec(name="NextGenSeqUtils", rev="Missing-LongCharSeq-fix", url = "https://github.com/MurrellGroup/NextGenSeqUtils.jl.git"))
 
 #this version just treates N as another nucleotide. it actually seems to work well as Ns incur a high sqeuclidean dist.
-#EucVec version of GMA
-"""
-    eucGma(;
-        k::Int64,
-        record::FASTX.FASTA.Record,
-        refVec::Vector{Float64},
-        windowsize::Int64,
-        kmerDict::Dict{LongSequence{DNAAlphabet{4}}, Int64},
-        thr::Float64,
-        buff::Int64,
-        rv::Vector{Float64})
-
-Testing version of the GMA that returns a euclidean vector instead of the matches.
-"""
-function eucGMA(;
-    k::Int64,
-    record::FASTX.FASTA.Record,
-    refVec::Vector{Float64},
-    windowsize::Int64,
-    kmerDict::Dict{LongSequence{DNAAlphabet{4}}, Int64},
-    thr::Float64,
-    buff::Int64,
-    rv::Vector{Float64})
-
-    #initial operations
-    seq = getSeq(record)
-    @views curr = fasterKF(k,seq[1:windowsize],kmerDict,rv) #Theres an even faster way with unsigned ints and bits.
-    currSqrEuc = Distances.sqeuclidean(refVec,curr)
-    EucVec = [currSqrEuc]
-
-    for i in 1:(length(seq)-windowsize) #big change: starts from 1 so i dont need to -1 nymore
-        #first operation
-        #zeroth kmer
-        @views zerokInt = kmerDict[seq[i:i+k-1]] #might be slightly faster to predefine
-        @views MinusOld = (refVec[zerokInt]-curr[zerokInt])^2
-        curr[zerokInt] -= 1
-        @views MinusNew = (refVec[zerokInt]-curr[zerokInt])^2
-
-        #last kmer
-        @views KendInt = kmerDict[seq[i+windowsize-k:i+windowsize-1]]
-        @views PlusOld = (refVec[KendInt]-curr[KendInt])^2
-        curr[KendInt] += 1
-        @views PlusNew = (refVec[KendInt]-curr[KendInt])^2
-
-        #second operation.
-        currSqrEuc += PlusNew + MinusNew - PlusOld - MinusOld
-        push!(EucVec, currSqrEuc)
-    end
-    return EucVec
-end
-
-export eucGMA
 
 ####################################################################
 #faster one for record, essential for GMA!!!!
@@ -92,7 +40,7 @@ function gma(;
     sl = FASTX.FASTA.seqsize(record)
     if sl >= windowsize
         #initial operations for the first window 
-        seq = getSeq(record) #getSeq is slow. Ideally I wanna work with subseqs eventually
+        seq = getSeq(record) #getSeq is kinda slow. Ideally I wanna work with subseqs eventually. Even better is if I can read and edit at the same time
         curr = fasterKF(k,view(seq,1:windowsize),kmerDict,rv) #Theres an even faster way with unsigned ints and bits.
         currSqrEuc = Distances.sqeuclidean(refVec,curr)
 
@@ -172,22 +120,24 @@ export gma
 
 Testing version of the gma, it only returns [10:20] nucleotides of the matches
 """
-function test_gma(;
+function test_gma(; #this version is actually slightly worse than the GMA now 
     k::Int64,
     record::FASTX.FASTA.Record,
     refVec::Vector{Float64},
     windowsize::Int64,
     kmerDict::Dict{LongSequence{DNAAlphabet{4}}, Int64},
-    path::Vector{FASTX.FASTA.Record},
     thr::Float64,
     buff::Int64,
     rv::Vector{Float64},
-    thrbuff::String)
+    thrbuff::String = "placeholder",
+    path::Vector{FASTX.FASTA.Record} = FASTA.Record[],
+    euc::Bool = false)
 
     #initial operations
     seq = FASTA.sequence(LongSequence{DNAAlphabet{4}}, record)
-    @views curr = fasterKF(k,seq[1:windowsize],kmerDict,rv) #Theres an even faster way with unsigned ints and bits.
+    curr = fasterKF(k,view(seq, 1:windowsize),kmerDict,rv) #Theres an even faster way with unsigned ints and bits.
     currSqrEuc = Distances.sqeuclidean(refVec,curr)
+    eucVec = [currSqrEuc]
 
     #defining some variables needed later
     CMI = 2
@@ -211,29 +161,34 @@ function test_gma(;
         #second operation.
         currSqrEuc += PlusNew + MinusNew - PlusOld - MinusOld
 
-        #third operation
-        if currSqrEuc < thr
-            if currSqrEuc < currminim
+        #third operation 
+        if euc
+            push!(eucVec, currSqrEuc)
+        else 
+            if currSqrEuc < thr
+                if currSqrEuc < currminim
+                    currminim = currSqrEuc
+                    CMI = i
+                    stop = false
+                end
+            elseif !stop
+                #in future account for if buffer exceeds end or front
+                #create the record of the match
+                rec = FASTA.Record(String(FASTA.identifier(record))*" | SED = "*
+                string(currminim)[1:5]*" | Pos = "*string(CMI+1)*":"*string(CMI+
+                windowsize+1)*thrbuff,
+                LongSequence{DNAAlphabet{4}}(seq[i-buff:i+windowsize-1+buff])[10:20])
+
+                #write in the record to the file
+                push!(path, rec)
+
+                #reset
                 currminim = currSqrEuc
-                CMI = i
-                stop = false
+                stop = true
             end
-        elseif !stop
-            #in future account for if buffer exceeds end or front
-            #create the record of the match
-            rec = FASTA.Record(String(FASTA.identifier(record))*" | SED = "*
-            string(currminim)[1:5]*" | Pos = "*string(CMI+1)*":"*string(CMI+
-            windowsize+1)*thrbuff,
-            LongSequence{DNAAlphabet{4}}(seq[i-buff:i+windowsize-1+buff])[10:20])
-
-            #write in the record to the file
-            push!(path, rec)
-
-            #reset
-            currminim = currSqrEuc
-            stop = true
         end
     end
+    if euc; (return eucVec) end
 end
 export test_gma
 

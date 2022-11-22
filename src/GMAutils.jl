@@ -16,11 +16,12 @@ function getSeq(seq::FASTX.FASTA.Record)
 export getSeq
 
 #faster kmer frequency from scratch with some given imputs, used in GMA. Its half the speed of a bitwise version. Replacing with the bitwise version can save almost a minute.
-function fasterKF(k::Int64, seq::LongSequence{DNAAlphabet{4}},
+#This is the most elegant non-bit version
+function fasterKF(k::Int64, seq::LongSubSeq{DNAAlphabet{4}}, #::LongSequence{DNAAlphabet{4}},
     KD::Dict{LongSequence{DNAAlphabet{4}}, Int64}, rv::Vector{Float64})
-    for i in 1:length(seq)-k+1
-        @views subseq = seq[i:i+k-1]
-        rv[KD[subseq]] += 1 
+    k -= 1
+    for i in 1:length(seq)-k
+        rv[KD[view(seq, i:i+k)]] += 1 
     end
     return rv
 end
@@ -40,11 +41,8 @@ the withN argument can be specified to decide whether dna"N" should be included 
 the cumulative argument shouldnt ever be needed but it generates a kmer Dictionary with all the kmer sizes up to k.
 """
 function genKmers(k::Int64, Dictionary::Bool = true; withN::Bool = false, cumulative::Bool = false) #O(4^k) no way around it im pretty sure.
-    if withN == false
-        bases = [dna"A"d, dna"C"d, dna"T"d, dna"G"d]
-    else
-        bases = [dna"A"d, dna"C"d, dna"T"d, dna"G"d, dna"N"d]
-    end
+    bases = [dna"A"d, dna"C"d, dna"T"d, dna"G"d]
+    if withN; push!(bases,dna"N"d) end
     last = [dna""d]
     curr = LongSequence{DNAAlphabet{4}}[]
     if Dictionary == false

@@ -40,10 +40,13 @@ end
 
     @test genKmers(1; withN=true) == KD
 
-    @test fasterKF(2, dna"GAGATAC",
+    @test fasterKF(2, view(dna"GAGATAC", 1:7),
     genKmers(2;withN=true), fill(0.0,25)) == kf
 
-    @test kmerFreq(2,dna"GAGATAC") == kf
+    @test fasterKF(1,view(dna"GAGATAC",1:7),KD,[
+        0.0,0.0,0.0,0.0,0.0]) == [3.0,1.0,1.0,2.0,0.0]
+
+    @test kmerFreq(2, dna"GAGATAC") == kf
 end
 
 @testset "RefGen.jl" begin
@@ -61,16 +64,14 @@ end
 end
 
 @testset "GMA.jl" begin
-    @test fasterKF(1,dna"GAGATAC",KD,[0.0,0.0,0.0,0.0,0.0]) == [3.0,1.0,1.0,2.0,0.0]
-
     #testing GMA euclidean version
     kd = genKmers(1,withN=true)
     reference = open(FASTX.FASTA.Reader, tf)
     refKFV = kfv(genRef(1,reference,kd),kd) #generation of kmer frequency dict and converting
     close(reference)
 
-    @test open(FASTX.FASTA.Reader,tf) do io
-        eucGMA(k = 1, record = first(io), refVec = refKFV,
+    open(FASTX.FASTA.Reader,tf) do io
+        @test test_gma(k = 1, record = first(io), refVec = refKFV, euc = true,
         windowsize = 289, kmerDict = kd, thr = 200.0, buff = 25,
         rv = fill(0.0,5)) == [71.2219387755102, 84.10289115646258,
         67.84098639455782, 67.84098639455782, 61.864795918367335,
