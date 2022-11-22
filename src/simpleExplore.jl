@@ -11,7 +11,7 @@ These functions are the essential dependencies for other functions and algorithm
 #AlpacaV = "C:/Users/lu_41/Desktop/Sofo Prok/VgeneData/AlpacaV.fasta"
 #Merged25 = "C:/Users/lu_41/Desktop/Sofo Prok/VgeneData/Sequencer/Merged/BEN-25_S23_L001.vsearch_Merged.fastq"
 
-#Functions to do with lengths and counts of sequences/assemblies, not that useful
+#Functions to do with lengths and counts of sequences/assemblies, not that useful. These were a bit helpful during debugging tho
 function seqsizeV(reader::FASTX.FASTA.Reader{})
     lengths = Int64[]
     for record in reader

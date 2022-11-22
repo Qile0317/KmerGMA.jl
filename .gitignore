@@ -4,3 +4,4 @@
 /test/localtest.jl
 /.vscode
 /performance.ipynb
+docs/build/
