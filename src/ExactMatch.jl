@@ -10,13 +10,13 @@
 ## I can also make it return a dictionary.
 #ig also its possible to make it write into a file
 """
-    firstMatch(reader,query)
+    firstMatch(readerFASTX.FASTA.Reader, query::LongSequence{DNAAlphabet{4}})
 
 Scans through a FASTA,Reader object to find the FIRST occurence of the query(dna longsequence) and prints the results to the REPL.
 
 This function is only really needed to quickly see if there is alot of matches.
 """
-function firstMatch(reader::FASTX.FASTA.Reader{}, query::LongSequence{DNAAlphabet{4}})
+function firstMatch(reader::FASTX.FASTA.Reader, query::LongSequence{DNAAlphabet{4}})
     query = ExactSearchQuery(query)
     for record in reader
         find = findfirst(query, FASTA.sequence(LongSequence{DNAAlphabet{4}}, record))
