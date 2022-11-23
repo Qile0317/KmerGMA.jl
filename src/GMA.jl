@@ -76,7 +76,8 @@ function gma(;
                 string(currminim)[1:5]*" | Pos = "*string(CMI+1)*":"*string(CMI+
                 windowsize+1)*thrbuff,
                 LongSequence{DNAAlphabet{4}}(seq[i-buff:i+windowsize-1+buff]))
-
+                
+                #return record to user
                 if mode == "write"
                     FASTA.Writer(open(path, "a"), width = 95) do writer
                         write(writer, rec)

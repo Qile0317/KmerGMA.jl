@@ -27,7 +27,7 @@ Pkg.add(PackageSpec(name="KmerGMA", url = "https://https://github.com/Qile0317/K
 If you are interested in the cutting edge of the development, please check out the master branch to try new features before release.
 
 ## Documentation
-Documentation is deployed at qile0317.github.io/KmerGMA.jl
+Documentation is deployed at https://qile0317.github.io/KmerGMA.jl
 
 ## Performance
 The current version of the approximate gene matching algorithm in the package processed a whole alpaca genome in just under 8 minutes over 4 billion base pairs. An alternate, unoptimized version ran in just under 5 minutes and a proposed, optimal algorithm has the potential to run in under a minute. More details will be shown very soon in a pre-print. 
