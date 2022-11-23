@@ -25,6 +25,8 @@ function seqsizeV(path::String)
     seqsizeV(open(FASTA.Reader, path))
 end
 
+export seqsizeV
+
 function avgseqsize(lengths::Vector{Int64})
     return sum(lengths)/length(lengths)
 end
