@@ -11,5 +11,5 @@ makedocs(
                 "Utilities" => "Utils.md"
                ])
 deploydocs(;
-    repo="github.com/Qile0317/KmerGMA.jl.git", devbranch = "master"
+    repo="github.com/Qile0317/KmerGMA.jl.git", branch = "gh-pages", devbranch = "master"
 )

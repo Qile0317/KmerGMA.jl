@@ -1,26 +1,44 @@
 """
       findGenes(; genome::String,
-               ref::String,
-               mode = "return",
-               fileloc::String = "noPath",
-               k::Int64 = 6,
-               windowsize::Int64 = 0,
-               thr::Int64 = 0,
-               buffer::Int64 = 50,
-               BLAST = false,
-               resultVec::Vector{FASTA.Record} = FASTA.Record[],)
+                  ref::String,
+                  mode = "return",
+                  fileloc::String = "noPath",
+                  k::Int64 = 6,
+                  windowsize::Int64 = 0,
+                  thr::Int64 = 0,
+                  buffer::Int64 = 50,
+                  BLAST = false,
+                  resultVec::Vector{FASTA.Record} = FASTA.Record[])
 
-The main API to find all matches. Its impportant that the genome and ref arguments are fasta file locations.
+The main API to find all gene matches in a genome from a reference sequence/reference sequence set.
+Returns the approximate matches as FASTA records. The descriptions of the record contain information about the match. 
+The format of the description appears as so:
 
-FASTQ, RNA and AA compaibility will be added in the future
+   "Identifier | SED = a | Pos = b:c | thr = d | buffer = e"
 
-The ref argument is a reader of reference FASTA sequences. fileloc is simply the location of a blank file to read the matches to.
+Where `SED`(Squared Euclidean Distance) indicates how similar the match is to the references.
 
-There are three modes, return, write, print. Write requires a file location string of a fasta file.
+...
+# Arguments
+- `genome::String`: the file location of a fasta file containing the genome.
+- `ref::String`: the file location of a fasta file containing the reference sequence(s). The references should be very similar in length
+
+# Optional Arguments
+- `mode = "return"`: what the function should return the gene matches in. There are three modes, `return`, `print`, `write`. 
+Return mode returns a vector of FASTA records. Print mode simply prints the fasta sequences in the REPL. 
+Write mode writes the fasta sequences to a fasta file, of which the location has to be given in the `fileloc` argument
+- `fileloc::String = "noPath"`: If the mode argument is `"write"`, this should be the location of a fasta file that the results should be written into.
+- `k::Int64 = 6`: the kmer length to use for approximate matching. Generally it should probably remain between 5 - 10 and probably does not have a profound impact on how the matches are found. Check out the pre-print for more information
+- `windowsize::Int64 = 0`: the size of the returned matches. It should be the average length of all reference sequences and is computed automatically if the argument is left as 0.
+- `thr::Int64 = 0`: the squared euclidian distance threshold for sequences. Out of the context of the algorithm, lower values mean matches have to be more similar to the references. If left as 0, it is automatically computed. Once again the pre-print has information on this argument.
+- `buffer::Int64 = 0`: the amount of nucleotides left and right of a matched sequence that should be added to the returned fasta sequences
+...
+
+It is recommended ot leave all other optional arguments as is, especially the buffer = 50 argument. The purpose of the algorithm is to find approximate matches that can then be BLASTed and aligned.
 
 Unfinished docs. The BLAST argument is currently useless.
 """
-function findGenes(;
+function findGenes(; #FASTQ, RNA and AA compaibility will be added in the future
    genome::String, 
    ref::String,
    mode = "return",
