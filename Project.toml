@@ -4,7 +4,7 @@ keywords = ["kmer", "Vgene"]
 license = "MIT"
 desc = "A tool to scan genomes for genes from gene families"
 authors = ["Qile Yang", "Benjamin Murrell"]
-version = "0.0.1"
+version = "0.1.0"
 
 [deps]
 BioSequences = "7e6ae17a-c86d-528c-b3b9-7f778a29fe59"
@@ -18,7 +18,7 @@ BioSequences = "3"
 Distances = "0.10"
 Documenter = "0.27"
 FASTX = "2"
-julia = "1.8"
+julia = "1.7"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
