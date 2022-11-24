@@ -3,6 +3,6 @@
 /src/upcoming
 /test/localtest.jl
 /.vscode
-/performance.ipynb
+/benchmark
 docs/build/
 docs/Manifest.toml
