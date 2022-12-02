@@ -61,7 +61,7 @@ export genRef
             KD::Dict{LongSequence{DNAAlphabet{4}}, Int64};
             buff::Union{Int64,Float64} = 25)
 
-Suggests an SED threshold, assuming most indexes do not match. Returns an interger
+Suggests an SED threshold, assuming most indexes do not match. Returns a float
 
 Its extremely simple and just adds to a the SED of the first reference sequence's KFV to the actual reference KFV
 """
@@ -76,41 +76,54 @@ function findthr(refseqs::String, refKFV::Dict{LongSequence{DNAAlphabet{4}}, Flo
     end
     return answer + buff
 end
-#findthr should be able to just take KFV instead of requireing KFD. its an ez fix tho ill do it later
-function findthr(refseqs::FASTX.FASTA.Reader,
-    refKFV::Dict{LongSequence{DNAAlphabet{4}}, Float64},
-    KD::Dict{LongSequence{DNAAlphabet{4}}, Int64};
-    buff::Union{Int64,Float64} = 25)
-
-    seq = getSeq(first(refseqs))
-    answer = Distances.sqeuclidean(kmerFreq(length(first(first(KD))),
-    seq,KD), kfv(refKFV,KD))
-    return answer + buff
-end
 
 export findthr
 
 """
-    findavgthr(refseqs::Union{FASTX.FASTA.Reader, String},
-               refKFV::Dict{LongSequence{DNAAlphabet{4}}, Float64},
-               KD::Dict{LongSequence{DNAAlphabet{4}}, Int64};
-               buff::Union{Int64,Float64} = 25)
+    findRandThr(refseqs::Union{FASTX.FASTA.Reader, String},
+                refKFV::Dict{LongSequence{DNAAlphabet{4}}, Float64},
+                KD::Dict{LongSequence{DNAAlphabet{4}}, Int64};
+                sampleSize::Int64 = 0, 
+                buff::Union{Int64,Float64} = 0,
+                ScaleFactor::Float64 = 0.0)
 
-version of findthr that scans through the entire reference to see the average SED for the most accurate avg SED but probably doesnt make much of a difference.
+Suggests an kmer distance threshold, assuming most indexes do not match. Returns a float.
+
+It is actually partially based on randomness as the algorithm compares to a random dna seq.
 """
-function findavgthr(refseqs::Union{FASTX.FASTA.Reader, String}, refKFV::Dict{LongSequence{DNAAlphabet{4}}, Float64},
-    KD::Dict{LongSequence{DNAAlphabet{4}}, Int64}; buff::Union{Int64,Float64} = 25)
-    if typeof(refseqs) == String
-        refseqs = open(FASTA.Reader, refseqs)
+function findRandThr(refseqs::String, 
+    refKFV::Dict{LongSequence{DNAAlphabet{4}}, Float64},
+    KD::Dict{LongSequence{DNAAlphabet{4}}, Int64};
+    sampleSize::Int64 = 0, 
+    buff::Union{Int64,Float64} = 0,
+    ScaleFactor::Float64 = 0.0)#,
+    #setSeed::Int64 = 1112)  
+
+    k = length(first(first(KD))) #get kmer size from kmer dict
+    if ScaleFactor == 0.0; ScaleFactor = 1/(2*k) end #set scale factor
+    if sampleSize == 0; sampleSize = 300 end #set samplesize
+
+    io = open(FASTX.FASTA.Reader, refseqs)
+    seq = first(io) #get sequence of the first record of reference
+    close(io)
+
+    seqlen = FASTA.seqsize(seq)
+    seq = getSeq(seq)
+
+    #find the distance of the first reference to the KFV, should be small. 
+    exact = ScaleFactor * Distances.sqeuclidean(
+        kmerFreq(k,seq,KD),kfv(refKFV,KD)) 
+
+    upp = 0
+    #Random.seed!(setSeed) #set seed for random sequence generation. ill add in next updates 
+
+    for i in 1:sampleSize #run n random sequences 
+        upp += ScaleFactor * Distances.sqeuclidean(
+            kmerFreq(k,BioSequences.randdnaseq(seqlen),
+            KD),kfv(refKFV,KD)) #check against a random sequence
     end
-    SED = []
-    KFV = kfv(refKFV,KD)
-    k = length(first(first(KD)))
-    for record in refseqs
-        seq = FASTA.sequence(record)
-        push!(SED, Distances.sqeuclidean(kmerFreq(k,seq,KD),KFV))
-    end
-    return (sum(SED)/recordCount(refseqs)) + buff
+    upp = upp * ScaleFactor / 300
+    return exact + ((upp-exact)/2) + buff #returns halfway point. It should be mathematically investigated in the future whether the halfway point is optimal
 end
 
-#export findavgthr
+export findRandThr

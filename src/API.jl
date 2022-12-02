@@ -1,7 +1,7 @@
 """
-      findGenes(; genome::String,
+      findGenes(; genome,
                   ref::String,
-                  mode = "return",
+                  mode::String = "return",
                   fileloc::String = "noPath",
                   k::Int64 = 6,
                   windowsize::Int64 = 0,
@@ -20,7 +20,7 @@ Where `SED`(Squared Euclidean Distance) indicates how similar the match is to th
 
 ...
 # Arguments
-- `genome::String`: the file location of a fasta file containing the genome.
+- `genome`: Either a String or a Vector of strings, where each string is the file location of a `.fasta` file containing the genome.
 - `ref::String`: the file location of a fasta file containing the reference sequence(s). The references should be very similar in length
 
 # Optional Arguments
@@ -38,10 +38,10 @@ It is recommended ot leave all other optional arguments as is, especially the bu
 
 Unfinished docs. The BLAST argument is currently useless.
 """
-function findGenes(; #FASTQ, RNA and AA compaibility will be added in the future
-   genome::String, 
+function findGenes(; #FASTQ, RNA and AA compaibility will be added in the future. Also distance metric may be changed in future
+   genome, 
    ref::String,
-   mode = "return",
+   mode::String = "return",
    fileloc::String = "noPath",
    k::Int64 = 6, 
    windowsize::Int64 = 0,
@@ -63,14 +63,29 @@ function findGenes(; #FASTQ, RNA and AA compaibility will be added in the future
    threshold_buffer_tag = " | thr = "*string(round(thr))*" | buffer = "*string(buffer) # Maybe it would be wise to put which record it is
 
    #genome mining
-   open(FASTA.Reader, genome) do io
-      for rec in io
-         gma(k=k, record = rec, refVec = refKFV,
-         windowsize = windowsize, kmerDict = KD,
-         path=fileloc, thr=thr, buff=buffer,
-         rv=copy(RV), #from benchmarking it seems copying isnt that slow?
-         thrbuff=threshold_buffer_tag,
-         mode = mode, resultVec = results)
+   if typeof(genome) == String
+      open(FASTA.Reader, genome) do io
+         for rec in io
+            gma(k=k, record = rec, refVec = refKFV,
+            windowsize = windowsize, kmerDict = KD,
+            path=fileloc, thr=thr, buff=buffer,
+            rv=copy(RV), #from benchmarking it seems copying isnt that slow?
+            thrbuff=threshold_buffer_tag,
+            mode = mode, resultVec = results)
+         end
+      end
+   else
+      for str in genome
+         open(FASTA.Reader, str) do io
+            for rec in io
+               gma(k=k, record = rec, refVec = refKFV,
+               windowsize = windowsize, kmerDict = KD,
+               path=fileloc, thr=thr, buff=buffer,
+               rv=copy(RV), #from benchmarking it seems copying isnt that slow?
+               thrbuff=threshold_buffer_tag,
+               mode = mode, resultVec = results)
+            end
+         end
       end
    end
    if mode == "return"; (return results) end

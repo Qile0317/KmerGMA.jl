@@ -1,8 +1,8 @@
 name = "KmerGMA"
 uuid = "8be7bc38-8fc2-41cb-89ad-33be3f5e9eec"
-keywords = ["kmer", "Vgene"]
+keywords = ["kmer", "Vgene", "Homology", "BLAST"]
 license = "MIT"
-desc = "A tool to scan genomes for genes from gene families"
+desc = "A kmer-based homology searcher"
 authors = ["Qile Yang", "Benjamin Murrell"]
 version = "0.1.0"
 
@@ -11,6 +11,7 @@ BioSequences = "7e6ae17a-c86d-528c-b3b9-7f778a29fe59"
 Distances = "b4f34e82-e78d-54a5-968a-f98e89d6e8f7"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 FASTX = "c2308a5c-f048-11e8-3e8a-31650f418d12"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]

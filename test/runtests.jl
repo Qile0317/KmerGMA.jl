@@ -1,5 +1,5 @@
 using KmerGMA
-using Test, BioSequences, FASTX
+using Test, BioSequences, FASTX, Random
 
 #testing variables
 tf = "Alp_V_ref.fasta"
@@ -13,10 +13,6 @@ KFV = Dict(dna"T" => 62.38095238095238, dna"C" => 73.70238095238095,
 dna"A" => 63.25, dna"G" => 89.26190476190476, dna"N" => 0.0)
 
 @testset "simpleExplore.jl" begin
-    @test open(FASTX.FASTA.Reader,tf) do io
-        recordCount(io) == 84
-    end
-
     @test flipDict(Dict(dna"ATG" => 69, dna"ATGCCCCC" =>
     420)) == Dict(69 => dna"ATG", 420 => dna"ATGCCCCC")
 
@@ -50,17 +46,24 @@ end
 end
 
 @testset "RefGen.jl" begin
-    @test genRef(1,tf,KD) == KFV
+    @testset "genRef" begin
+        @test genRef(1,tf,KD) == KFV
 
-    @test open(FASTX.FASTA.Reader,tf) do io
-        genRef(1,io,KD) == KFV
+        @test open(FASTX.FASTA.Reader,tf) do io
+            genRef(1,io,KD) == KFV
+        end
     end
 
-    @test open(FASTX.FASTA.Reader,tf) do io
-        findthr(io,KFV,KD) == 147.38860544217687
+    @testset "threshold" begin
+        @test findthr(tf,KFV,KD) == 147.38860544217687 #I need to change this w the scalefactor later
+        
+        #random threshold finder. they are seeded so testing should be consistent
+        Random.seed!(1112) #in future update ill make the seed within the function for consistency. 
+        @test findRandThr(tf,KFV,KD) == 121.49633219954649
+        @test findRandThr(tf,KFV,KD; ScaleFactor = 1.0) == 406.91773242630364
+        @test findRandThr(tf,KFV,KD; buff = 20) == 139.77463577097504 # each unit = 1 substitution or 0.6 indel
+        @test findRandThr(tf,KFV,KD; sampleSize = 418) == 153.66769061791388
     end
-
-    @test findthr(tf,KFV,KD) == 147.38860544217687
 end
 
 @testset "GMA.jl" begin
