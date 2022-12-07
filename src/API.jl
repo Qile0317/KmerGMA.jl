@@ -7,7 +7,6 @@
                   windowsize::Int64 = 0,
                   thr::Int64 = 0,
                   buffer::Int64 = 50,
-                  BLAST = false,
                   resultVec::Vector{FASTA.Record} = FASTA.Record[])
 
 The main API to find all gene matches in a genome from a reference sequence/reference sequence set.
@@ -36,7 +35,7 @@ Write mode writes the fasta sequences to a fasta file, of which the location has
 
 It is recommended ot leave all other optional arguments as is, especially the buffer = 50 argument. The purpose of the algorithm is to find approximate matches that can then be BLASTed and aligned.
 
-Unfinished docs. The BLAST argument is currently useless.
+However, playing with the `thr` argument could return more or less matches every time. 
 """
 function findGenes(; #FASTQ, RNA and AA compaibility will be added in the future. Also distance metric may be changed in future
    genome, 
@@ -47,7 +46,6 @@ function findGenes(; #FASTQ, RNA and AA compaibility will be added in the future
    windowsize::Int64 = 0,
    thr::Float64 = 0.0, 
    buffer::Int64 = 50,
-   BLAST = false, 
    results::Vector{FASTA.Record} = FASTA.Record[])
 
    #managing undeclared variables

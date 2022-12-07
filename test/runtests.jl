@@ -90,7 +90,7 @@ end
         @test res[6942] == 244.7738095238098
 
         res = Float64[]
-        eucGma(k = 6, record = goal, refVec = ref,
+        eucGma(k = 6, record = goal, refVec = refKFV,
         windowsize=289, kmerDict=sixMerDict,
         rv = fill(0.0, 5^6), resultVec = res, 
         ScaleFactor = 0.8333333333)

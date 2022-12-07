@@ -5,13 +5,13 @@
 
 *A k-mer based approach for homolgy searching*
 
-A package for finding homologues of a reference gene family/sequence using kmer manipulation swiftly. Also includes utilities such as an algorithmic to find all exact matches of a reference sequence to a genome. 
+A package for finding homologues of a reference gene family/sequence using kmer manipulation swiftly. Also includes utilities such as an algorithm to find all exact matches of a reference sequence to a genome. 
 
 note:
 - The package is in a very preliminary stage and can be heavily optimized. For potential developers, a pre-print of the main kmer-based algorithm will be available very soon. 
 
 ## Package Features
-- Find approximate matches from a gene fammily (such as V(D)J genes) in a genome of a set of (or 1) reference sequence in linear time. 
+- Homology searching of 1 query sequence or a collection of queries to a local database(s)
 - Find exact gene matches in a genome from a query sequence
 - Utilities for kmer-tricks
 
