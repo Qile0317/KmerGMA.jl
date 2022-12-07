@@ -133,7 +133,7 @@ end
         @test FASTX.FASTA.description(a[1]) == "JQ684648.1 | SED = 10.90 | Pos = 8543:8832 | thr = 16.0 | buffer = 50"
         @test getSeq(a[2])[42:96] == dna"CTCTGAGACTCTCCTGTGCAGCCTCTGGATTCACTTTTGATGATTATGCCATGAG"
         @test getSeq(a[4])[317:328] == dna"AGACACAAACCT"
-        @test getSeq(a[5])[198:200] == dna"AG"
+        @test getSeq(a[5])[198:200] == dna"CAG"
     end
     
     @testset "findGenes_thr=25" begin
