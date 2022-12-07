@@ -6,7 +6,7 @@ makedocs(
          modules  = [KmerGMA],
          pages=[
                 "Home" => "index.md"
-                "Genome mining" => "findGenes.md"
+                "Homology searching" => "findGenes.md"
                 "Exact gene finding" => "exactMatch.md"
                 "Utilities" => "Utils.md"
                ])

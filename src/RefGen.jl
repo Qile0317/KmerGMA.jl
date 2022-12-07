@@ -85,7 +85,8 @@ export findthr
                 KD::Dict{LongSequence{DNAAlphabet{4}}, Int64};
                 sampleSize::Int64 = 0, 
                 buff::Union{Int64,Float64} = 0,
-                ScaleFactor::Float64 = 0.0)
+                ScaleFactor::Float64 = 0.0
+                setSeed::Int64 = 1112)  
 
 Suggests an kmer distance threshold, assuming most indexes do not match. Returns a float.
 
@@ -96,9 +97,10 @@ function findRandThr(refseqs::String,
     KD::Dict{LongSequence{DNAAlphabet{4}}, Int64};
     sampleSize::Int64 = 0, 
     buff::Union{Int64,Float64} = 0,
-    ScaleFactor::Float64 = 0.0)#,
-    #setSeed::Int64 = 1112)  
+    ScaleFactor::Float64 = 0.0,
+    setSeed::Int64 = 1112)  
 
+    Random.seed!(setSeed) 
     k = length(first(first(KD))) #get kmer size from kmer dict
     if ScaleFactor == 0.0; ScaleFactor = 1/(2*k) end #set scale factor
     if sampleSize == 0; sampleSize = 300 end #set samplesize
