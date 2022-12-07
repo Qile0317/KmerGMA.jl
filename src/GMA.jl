@@ -50,8 +50,8 @@ function gma(;
         stop = true
         currminim = currSqrEuc
 
-        for i in 1:(sl-windowsize) 
-            #first & second operation
+        for i in 1:(sl-windowsize) #treat the first kmer as the -1th
+            #first & second operation. I think a bloom filter might help with performance
             #zeroth kmer
             @views zerokInt = kmerDict[view(seq,i:i+k-1)] #might be slightly faster to predefine
             @views currSqrEuc -= (refVec[zerokInt]-curr[zerokInt])^2 # a_old
@@ -75,15 +75,22 @@ function gma(;
                     stop = false
                 end
             elseif !stop #in future account for if buffer exceeds end or front
-                #create the record of the match
+                #to get the record with the buffer, need to check if it exceeds the end of the sequence or is negative.
+                left_buffer = i - buff
+                if left_buffer < 0; left_buffer = 0 end 
+
+                right_buffer = i + windowsize - 1 + buff 
+                if right_buffer > sl; right_buffer = sl end  
+                
+                #create record 
                 rec = FASTA.Record(String(FASTA.identifier(record))*" | SED = "* #sed should be changed in the future
                 string(currminim)[1:5]*" | Pos = "*string(CMI+1)*":"*string(CMI+
                 windowsize+1)*thrbuff,
-                LongSequence{DNAAlphabet{4}}(seq[i-buff:i+windowsize-1+buff]))
+                LongSequence{DNAAlphabet{4}}(seq[left_buffer:right_buffer]))
                 
                 #return record to user
                 if mode == "write"
-                    FASTA.Writer(open(path, "a"), width = 95) do writer
+                    FASTA.Writer(open(path, "a"), width = 95) do writer # "a" is very important
                         write(writer, rec)
                     end
                 elseif mode == "print"

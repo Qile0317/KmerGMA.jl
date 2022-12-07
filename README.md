@@ -1,7 +1,5 @@
-# KmerGMA
-[![Build Status](https://github.com/Qile0317/KmerGMA.jl/actions/workflows/CI.yml/badge.svg?branch=master)](https://github.com/Qile0317/KmerGMA.jl/actions/workflows/CI.yml?query=branch%3Amaster) [![MIT license](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/Qile0317/LICENSE) [![Latest Release](https://img.shields.io/github/release/Qile0317/KmerGMA.jl.svg)](https://github.com/Qile0317/KmerGMA.jl/releases/latest) [![Documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://qile0317.github.io/KmerGMA.jl)
-
-# <img src="KmerGMA.jl.png" width="30%" align="right" />
+# <img src="KmerGMA.jl.png" width="30%" align="right" /> KmerGMA
+[![Build Status](https://github.com/Qile0317/KmerGMA.jl/actions/workflows/CI.yml/badge.svg?branch=master)](https://github.com/Qile0317/KmerGMA.jl/actions/workflows/CI.yml?query=branch%3Amaster) [![MIT license](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/Qile0317/KmerGMA.jl/LICENSE) [![Latest Release](https://img.shields.io/github/release/Qile0317/KmerGMA.jl.svg)](https://github.com/Qile0317/KmerGMA.jl/releases/latest) [![Documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://qile0317.github.io/KmerGMA.jl)
 
 *A k-mer based approach for homolgy searching*
 
@@ -20,7 +18,7 @@ The package is not yet registered in the pkg registry. Until then, please use:
 
 ```julia
 using Pkg
-Pkg.add(PackageSpec(name="KmerGMA", url = "https://https://github.com/Qile0317/KmerGMA.jl.git"))
+Pkg.add(PackageSpec(name="KmerGMA", url = "https://github.com/Qile0317/KmerGMA.jl.git"))
 ```
 
 If you are interested in the cutting edge of the development, please check out the master branch to try new features before release.

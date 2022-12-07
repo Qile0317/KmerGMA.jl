@@ -18,7 +18,7 @@ The package is not yet registered in the pkg registry. Until then, please use:
 
 ```julia
 using Pkg
-Pkg.add(PackageSpec(name="KmerGMA", url = "https://https://github.com/Qile0317/KmerGMA.jl.git"))
+Pkg.add(PackageSpec(name="KmerGMA", url = "https://github.com/Qile0317/KmerGMA.jl.git"))
 ```
 
 If you are interested in the cutting edge of the development, please check out the master branch to try new features before release.
