@@ -33,7 +33,7 @@ Write mode writes the fasta sequences to a fasta file, of which the location has
 - `buffer::Int64 = 0`: the amount of nucleotides left and right of a matched sequence that should be added to the returned fasta sequences
 ...
 
-It is recommended ot leave all other optional arguments as is, especially the buffer = 50 argument. The purpose of the algorithm is to find approximate matches that can then be BLASTed and aligned.
+It is recommended to leave all other optional arguments as is, especially the buffer = 50 argument. The purpose of the algorithm is to find approximate matches that can then be BLASTed and aligned.
 
 However, playing with the `thr` argument could return more or less matches every time. 
 """
@@ -62,7 +62,7 @@ function findGenes(; #FASTQ, RNA and AA compaibility will be added in the future
    ScaleFactor = 1/(2*k) #maybe this could be an argument as well?
 
    #genome mining, for string and vector of strings which is the database.
-   if typeof(genome) == String
+   if typeof(genome) == String #need to incorporate the eucGma here.
       open(FASTA.Reader, genome) do io
          for rec in io
             gma(k=k, record = rec, refVec = refKFV,
