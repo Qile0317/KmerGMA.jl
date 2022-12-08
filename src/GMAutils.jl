@@ -1,9 +1,3 @@
-#const SeqView = SubString{StringViews.StringView{SubArray{
-    #UInt8, 1, Vector{UInt8}, Tuple{UnitRange{Int64}}, true}}}
-
-#I have to implement this bc of FASTX's new update -_-
-#it increases processing by about 6 microseconds, ugh
-#I mean, ig its possible to have a local version but... eh
 """
     getSeq(FASTA.Record)
 
@@ -15,18 +9,7 @@ function getSeq(seq::FASTX.FASTA.Record)
 
 export getSeq
 
-#faster kmer frequency from scratch with some given imputs, used in GMA. Its half the speed of a bitwise version. Replacing with the bitwise version can save almost a minute.
-#This is the most elegant non-bit version
-function fasterKF(k::Int64, seq::LongSubSeq{DNAAlphabet{4}}, #::LongSequence{DNAAlphabet{4}},
-    KD::Dict{LongSequence{DNAAlphabet{4}}, Int64}, rv::Vector{Float64})
-    k -= 1
-    for i in 1:length(seq)-k
-        rv[KD[view(seq, i:i+k)]] += 1 
-    end
-    return rv
-end
-
-export fasterKF
+#in the future i hope to be able to iterate and read at the same time through the file. That would speed it up dramatically.
 
 """
     genKmers(k::Int64,
@@ -80,6 +63,9 @@ function genKmers(k::Int64, Dictionary::Bool = true; withN::Bool = false, cumula
         return kmers
     end
 end
+
+export genKmers
+
 
 """
     kmerFreq(k::Int64,
@@ -145,5 +131,3 @@ function kmerFreq(k::Int64, seq::LongSequence{DNAAlphabet{4}}; returnDict::Bool 
 end
 
 export kmerFreq
-
-export genKmers

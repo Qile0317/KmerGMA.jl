@@ -68,7 +68,7 @@ function findGenes(; #FASTQ, RNA and AA compaibility will be added in the future
             gma(k=k, record = rec, refVec = refKFV,
             windowsize = windowsize, kmerDict = KD,
             path=fileloc, thr=thr, buff=buffer,
-            rv=copy(RV), #from benchmarking it seems copying isnt that slow?
+            rv = fill!(RV,0.0),
             thrbuff=threshold_buffer_tag,
             mode = mode, resultVec = results,
             ScaleFactor = ScaleFactor)
@@ -81,7 +81,7 @@ function findGenes(; #FASTQ, RNA and AA compaibility will be added in the future
                gma(k=k, record = rec, refVec = refKFV,
                windowsize = windowsize, kmerDict = KD,
                path=fileloc, thr=thr, buff=buffer,
-               rv=copy(RV), #from benchmarking it seems copying isnt that slow?
+               rv = fill!(RV,0.0),
                thrbuff=threshold_buffer_tag,
                mode = mode, resultVec = results,
                ScaleFactor = ScaleFactor)
