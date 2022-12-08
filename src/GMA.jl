@@ -38,19 +38,19 @@ function gma(;
     resultVec::Vector{FASTA.Record} = FASTA.Record[],
     ScaleFactor::Float64 = 1.0) #1/2k
 
-    sl = FASTX.FASTA.seqsize(record)
-    if sl >= windowsize
+    sequence_length = FASTX.FASTA.seqsize(record)
+    if sequence_length >= windowsize
         #initial operations for the first window 
         seq = getSeq(record) #getSeq is kinda slow. Ideally I wanna work with subseqs eventually. Even better is if I can read and edit at the same time
-        curr = fasterKF(k,view(seq,1:windowsize),kmerDict,rv) #Theres an even faster way with unsigned ints and bits. I wonder if making so many temp arrays is a good idea
+        curr = fasterKF(k,view(seq,1:windowsize),kmerDict,rv) # current is the KFV
         currSqrEuc = Distances.sqeuclidean(refVec,curr)
 
-        #initializing certain variables
+        #initializing variables
         CMI = 2
         stop = true
         currminim = currSqrEuc
 
-        for i in 1:(sl-windowsize) #treat the first kmer as the -1th
+        for i in 1:(sequence_length-windowsize) #treat the first kmer as the -1th
             #first & second operation. I think a bloom filter might help with performance
             #zeroth kmer
             @views zerokInt = kmerDict[view(seq,i:i+k-1)] #might be slightly faster to predefine
@@ -80,7 +80,7 @@ function gma(;
                 if left_buffer < 0; left_buffer = 0 end 
 
                 right_buffer = i + windowsize - 1 + buff 
-                if right_buffer > sl; right_buffer = sl end  
+                if right_buffer > sequence_length; right_buffer = sequence_length end  
                 
                 #create record 
                 rec = FASTA.Record(String(FASTA.identifier(record))*" | SED = "* #sed should be changed in the future

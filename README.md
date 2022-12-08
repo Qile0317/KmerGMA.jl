@@ -27,7 +27,7 @@ If you are interested in the cutting edge of the development, please check out t
 Documentation is deployed at https://qile0317.github.io/KmerGMA.jl
 
 ## Performance
-The current version of the approximate gene matching algorithm in the package processed a whole alpaca genome in just under 8 minutes over 4 billion base pairs. An alternate, unoptimized version ran in just under 5 minutes and a proposed, optimal algorithm has the potential to run in under a minute. More details will be shown very soon in a pre-print. 
+The current version of the approximate gene matching algorithm in the package can iterate over a collection of sequences of around 4 billion basepairs in 5 minutes. Current benchmarking indicates that optimziations can improve this by a full minute in subsequent updates. Proposed optimizations has the theoretical potential to run in under a minute. More details will be shown very soon in a pre-print. 
 
 ## Contributions
 The work was initially begun at Karolinska Institutet, under an in-progress project ```Discovery of Novel Germline Immunoglobulin alleles``` in which 2 approaches were utilized to expand camelid V(D)J databases. Thanks to @murrellb for massive support. More information is found at https://github.com/Qile0317/SoFoCompBio22

@@ -11,25 +11,26 @@ end
 
 export fasterKF
 
-"""
+
 #heres a work in progress bit-based kmer count version that runs several orders of magnitude faster, but requires a massive re-vamp of everything
 #it is based on NextGenSeqUtils
 # it first requires a new type of kmer dict 
 
-#currently theres 2 approaches for the bit based kmer counter;
+#currently theres these approaches for the bit based kmer counter that I can think of;
 # 1- make it so that every time theres an N, it goes striaght to the bin and maybe divide it by k 
 # 2- treat N as a nucleotide but then have to use 3 bits and needing redundant memory.
-
-#basically, have to choose between 2 evils. 
-
-#this is the approach with redundant memory but faster because the "get" function isn't needed
+# 3- have 2 sets of dictionaries and one of them pointing valid numbers to their own new bins. this seems like it doesnt fix the issue though of hashin
+ 
 const NUCLEOTIDE_BITS= Dict(DNA_A => unsigned(0),
                             DNA_C => unsigned(1),
                             DNA_G => unsigned(2),
                             DNA_T => unsigned(3),
                             DNA_N => unsigned(4))
-                        
+       
+"""
 #const KmerType = Array{UInt32, 1}
+
+#this is the approach with redundant memory but faster because the "get" function isn't needed
 
 function kmer_count(str::LongSequence{DNAAlphabet{4}}, k::Int) #kmer, bins, and mask can be pregened later
     #initialize variables

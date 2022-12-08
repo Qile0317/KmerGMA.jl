@@ -57,9 +57,9 @@ function findGenes(; #FASTQ, RNA and AA compaibility will be added in the future
    refKFD = genRef(k,ref,KD) #generation of kmer frequency dict
    refKFV = kfv(refKFD,KD) #generation of kmer frequency dict
    RV = fill(0.0,5^k)
-   if thr == 0.0; thr += findRandThr(ref,refKFD,KD) end #random, based on seed 1112
-   threshold_buffer_tag = " | thr = "*string(round(thr))*" | buffer = "*string(buffer) # Maybe it would be wise to put which record it is
    ScaleFactor = 1/(2*k) #maybe this could be an argument as well?
+   if thr == 0.0; thr += findRandThr(ref,refKFD,KD, ScaleFactor=ScaleFactor) end #random threshold, based on seed 1112
+   threshold_buffer_tag = " | thr = "*string(round(thr))*" | buffer = "*string(buffer) # Maybe it would be wise to put which record it is
 
    #genome mining, for string and vector of strings which is the database.
    if typeof(genome) == String #need to incorporate the eucGma here.
@@ -68,7 +68,7 @@ function findGenes(; #FASTQ, RNA and AA compaibility will be added in the future
             gma(k=k, record = rec, refVec = refKFV,
             windowsize = windowsize, kmerDict = KD,
             path=fileloc, thr=thr, buff=buffer,
-            rv = fill!(RV,0.0),
+            rv = fill!(RV,0.0), #mutate version is important to save memory
             thrbuff=threshold_buffer_tag,
             mode = mode, resultVec = results,
             ScaleFactor = ScaleFactor)
