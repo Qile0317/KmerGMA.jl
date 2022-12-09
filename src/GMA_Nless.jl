@@ -5,8 +5,10 @@ const NUCLEOTIDE_BITS= Dict(DNA_A => unsigned(0),
                             DNA_C => unsigned(1),
                             DNA_G => unsigned(2),
                             DNA_T => unsigned(3))
+export NUCLEOTIDE_BITS
 
 const KmerType = Array{UInt32, 1}
+export KmerType
 
 #bins = zeros(eltype(KmerType), 4^k)
 #mask = unsigned(4^k - 1)
@@ -48,6 +50,8 @@ function gen_ref(path::String, k::Int, Nt_bits = NUCLEOTIDE_BITS)
     len = 1/len
     return answer.*len
 end
+
+export gen_ref
 
 #gen_ref("C:/Users/lu_41/.julia/dev/KmerGMA/test/Alp_V_ref.fasta",6)
 

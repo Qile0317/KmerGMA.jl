@@ -24,4 +24,8 @@ Pkg.add(PackageSpec(name="KmerGMA", url = "https://github.com/Qile0317/KmerGMA.j
 If you are interested in the cutting edge of the development, please check out the master branch to try new features before release.
 
 ## Performance
-The current version of the approximate gene matching algorithm in the package can iterate over a collection of sequences of around 4 billion basepairs in 5 minutes. Current benchmarking indicates that optimziations can improve this by a full minute in subsequent updates. Proposed optimizations has the theoretical potential to run in under a minute. More details will be shown very soon in a pre-print. 
+The current version of the approximate gene matching algorithm in the package can iterate over a collection of sequences of around 4 billion basepairs in 5 minutes. 
+
+There also is a version of the algorithm that runs approximately 3 times faster if the user knows that no sequence imput in the algorithm contains the undefined nucleotide N.
+
+Current benchmarking indicates that optimziations can improve this by a full minute in subsequent updates. Proposed optimizations has the theoretical potential to run in under a minute. More details will be shown very soon in a pre-print. 
