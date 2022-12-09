@@ -262,4 +262,4 @@ function gma_Nless_API(; #FASTQ, RNA and AA compaibility will be added in the fu
     if mode == "return"; (return results) end
  end
  
- export GMA_Nless_API
+ export gma_Nless_API

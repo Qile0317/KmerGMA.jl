@@ -6,5 +6,10 @@ The algorithm intakes a set of similar reference sequences - for example a colle
 ```@docs
 KmerGMA.findGenes
 ```
+
+As mentioned in the docstring, if there surely are no "N" nucleotides present, setting `HasN` to `false` runs an alternate, much faster algorithm.
+
+The `thr` argument can be toyed around with, as increasing the kmer distance threshold doesn't nessecarily always increase the amount of matches. The default distance is approximate against random sequences and may not always be the best metric.
+
 !!! note
     The unoptimized algorithm that accounts for N nucleotides runs in just under 5 minutes to iterate over a genome of almost 4 billion bps. More benchmarking is on the way. More information is upcoming in a pre-print.
