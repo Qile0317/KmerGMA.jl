@@ -7,3 +7,4 @@
 docs/build/
 docs/Manifest.toml
 currUpdates.md
+src/kmerCount.jl

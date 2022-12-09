@@ -1,17 +1,3 @@
-# standard dictionary based kmer frequency from scratch with some given imputs, used in GMA. 
-# replacing with the proposed optimal version can save almost a minute on 4 billion bps from 5 to 4 mins
-function fasterKF(k::Int64, seq::LongSubSeq{DNAAlphabet{4}}, #::LongSequence{DNAAlphabet{4}},
-    KD::Dict{LongSequence{DNAAlphabet{4}}, Int64}, rv::Vector{Float64})
-    k -= 1
-    for i in 1:length(seq)-k
-        rv[KD[view(seq, i:i+k)]] += 1 
-    end
-    return rv
-end
-
-export fasterKF
-
-
 #heres a work in progress bit-based kmer count version that runs several orders of magnitude faster, but requires a massive re-vamp of everything
 #it is based on NextGenSeqUtils
 # it first requires a new type of kmer dict 
@@ -107,8 +93,7 @@ function kmer_count_new(str::LongSubSeq{DNAAlphabet{4}}, k::Int)
     NUCLEOTIDE_BITS= Dict(DNA_A => unsigned(0),
                             DNA_C => unsigned(1),
                             DNA_G => unsigned(2),
-                            DNA_T => unsigned(3),
-                            DNA_N => unsigned(4))
+                            DNA_T => unsigned(3))
 
     # form the first kmer
     for c in str[1:k-1]
@@ -155,6 +140,9 @@ close(VP)
 @BenchmarkTools.benchmark fasterKF(6,view(str,1:300),KD,rv) #15 us
 
 #wow. adding the equating operation made it go to the GC
+
+#literally the only issue here is memory. I think I'll have to dig into literature on memory efficient kmer counting algos.
+
 #if N's did not exist, then this algo would be incredibly fast.
 #But having N makes it much more complicated
 """

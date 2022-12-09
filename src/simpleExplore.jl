@@ -272,6 +272,16 @@ function readerNTs(reader::FASTX.FASTA.Reader)
     return len
 end
 
+function readerNTs(reader::String)
+    len = 0
+    open(FASTA.Reader, reader) do io
+        for record in io
+            len += FASTX.FASTA.seqsize(record)
+        end
+    end
+    return len
+end
+
 export readerNTs
 
 ##looking at FASTQ sequences with weird lengths(also can be done for fasta.):

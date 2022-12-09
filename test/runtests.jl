@@ -36,17 +36,19 @@ end
 
     @test genKmers(1; withN=true) == KD
 
-    @test fasterKF(2, view(dna"GAGATAC", 1:7),
-    genKmers(2;withN=true), fill(0.0,25)) == kf
+    a = fill(0.0,25)
+    fasterKF(2, view(dna"GAGATAC", 1:7),genKmers(2;withN=true), a)
+    @test a == kf
 
-    @test fasterKF(1,view(dna"GAGATAC",1:7),KD,[
-        0.0,0.0,0.0,0.0,0.0]) == [3.0,1.0,1.0,2.0,0.0]
+    a = [0.0,0.0,0.0,0.0,0.0]
+    fasterKF(1,view(dna"GAGATAC",1:7),KD,a) 
+    @test a == [3.0,1.0,1.0,2.0,0.0]
 
     @test kmerFreq(2, dna"GAGATAC") == kf
 end
 
 @testset "RefGen.jl" begin
-    @testset "Reference dictionary generation" begin
+    @testset "Reference dictionary generation" begin #this needs to be improved
         @test genRef(1,tf,KD) == KFV
 
         @test open(FASTX.FASTA.Reader,tf) do io
@@ -112,7 +114,7 @@ end
         res = FASTA.Record[FASTA.Record("test", dna"tt")]
 
         gma(k=6,record=goal, refVec=refKFV,windowsize =289,
-        kmerDict = sixMerDict, thr = 200.0, buff = 50, rv=fill(0.0,5^6),
+        kmerDict = sixMerDict, thr = 200.0, buff = 50, curr_kmer_freq=fill(0.0,5^6),
         thrbuff = "test", mode = "return", resultVec = res)
 
         @test res[1] == FASTA.Record("test", dna"tt") #see if the first record stayed
@@ -154,9 +156,18 @@ end
         @test getSeq(a[5])[50:75] == dna"TCCTGTGCAGCCTCTGGATTCACCTT"
         @test getSeq(a[3])[360:end] == dna"ACCCACCAAGGGCAGGGCTGAGCCCCAGAG"
     end
-    #To Do:
-    #buffer test! For when it exceeds end or preceeds start. 
-    #test if its a vector of strings as the imput for genome.
+
+    @testset "findGenes_inp=Vector" begin
+        a = findGenes(genome = [gf,GF], ref = tf)
+        @test length(a) == 8
+
+        #gf is actually the first sequence of GF
+        @test a[end] == a[2]
+        @test a[1] == a[7]
+        @test getSeq(a[3])[10:21] == dna"AGGATTGGTGCA"
+        @test FASTX.FASTA.description(a[5]) == "AM773729.1 | SED = 10.90 | Pos = 685:974 | thr = 16.0 | buffer = 50"
+    end
+    #need to test for when buffer exceeds front or back, but it should be pretty straightforward
 end
 
 @testset "ExactMatch.jl" begin

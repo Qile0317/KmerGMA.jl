@@ -10,7 +10,7 @@
           kmerDict::Dict{LongSequence{DNAAlphabet{4}}, Int64},
           thr::Float64,
           buff::Int64,
-          rv::Vector{Float64},
+          curr_kmer_freq::Vector{Float64},
           thrbuff::String,
           mode::String = "write",
           path::String = "noPath"
@@ -31,7 +31,7 @@ function gma(;
     kmerDict::Dict{LongSequence{DNAAlphabet{4}}, Int64},
     thr::Float64,
     buff::Int64,
-    rv::Vector{Float64},
+    curr_kmer_freq::Vector{Float64},
     thrbuff::String,
     mode::String = "write",  #"return", "print"
     path::String = "noPath",
@@ -42,8 +42,8 @@ function gma(;
     if sequence_length >= windowsize
         #initial operations for the first window 
         seq = getSeq(record) #getSeq is kinda slow. Ideally I wanna work with subseqs eventually. Even better is if I can read and edit at the same time
-        curr = fasterKF(k,view(seq,1:windowsize),kmerDict,rv) # current is the KFV
-        currSqrEuc = Distances.sqeuclidean(refVec,curr)
+        fasterKF(k,view(seq,1:windowsize),kmerDict,curr_kmer_freq) #got rid of return 
+        currSqrEuc = Distances.sqeuclidean(refVec,curr_kmer_freq)
 
         #initializing variables
         CMI = 2
@@ -54,15 +54,15 @@ function gma(;
             #first & second operation. I think a bloom filter might help with performance
             #zeroth kmer
             @views zerokInt = kmerDict[view(seq,i:i+k-1)] #might be slightly faster to predefine
-            @views currSqrEuc -= (refVec[zerokInt]-curr[zerokInt])^2 # a_old
-            curr[zerokInt] -= 1
-            @views currSqrEuc += (refVec[zerokInt]-curr[zerokInt])^2 # a_new
+            @views currSqrEuc -= (refVec[zerokInt]-curr_kmer_freq[zerokInt])^2 # a_old
+            curr_kmer_freq[zerokInt] -= 1
+            @views currSqrEuc += (refVec[zerokInt]-curr_kmer_freq[zerokInt])^2 # a_new
 
             #last kmer
             @views KendInt = kmerDict[view(seq,i+windowsize-k:i+windowsize-1)]
-            @views currSqrEuc -= (refVec[KendInt]-curr[KendInt])^2 # b_old
-            curr[KendInt] += 1
-            @views currSqrEuc += (refVec[KendInt]-curr[KendInt])^2 # b_new
+            @views currSqrEuc -= (refVec[KendInt]-curr_kmer_freq[KendInt])^2 # b_old
+            curr_kmer_freq[KendInt] += 1
+            @views currSqrEuc += (refVec[KendInt]-curr_kmer_freq[KendInt])^2 # b_new
 
             #convert to kmer Distance 
             kmerDist = currSqrEuc * ScaleFactor 
@@ -118,7 +118,7 @@ export gma
             refVec::Vector{Float64},
             windowsize::Int64,
             kmerDict::Dict{LongSequence{DNAAlphabet{4}}, Int64},
-            rv::Vector{Float64},
+            curr_kmer_freq::Vector{Float64},
             resultVec::Vector{Float64} = Float64[],
             ScaleFactor::Float64 = 1.0) 
 
@@ -133,7 +133,7 @@ function eucGma(; k::Int64,
                   refVec::Vector{Float64},
                   windowsize::Int64,
                   kmerDict::Dict{LongSequence{DNAAlphabet{4}}, Int64},
-                  rv::Vector{Float64},
+                  curr_kmer_freq::Vector{Float64},
                   resultVec::Vector{Float64} = Float64[],
                   ScaleFactor::Float64 = 1.0) 
 
@@ -141,7 +141,7 @@ function eucGma(; k::Int64,
     if sl >= windowsize
         #initial operations for the first window 
         seq = getSeq(record) #getSeq is kinda slow. Ideally I wanna work with subseqs eventually. Even better is if I can read and edit at the same time
-        curr = fasterKF(k,view(seq,1:windowsize),kmerDict,rv) #Theres an even faster way with unsigned ints and bits. I wonder if making so many temp arrays is a good idea
+        fasterKF(k,view(seq,1:windowsize),kmerDict,curr_kmer_freq) #Theres an even faster way with unsigned ints and bits. I wonder if making so many temp arrays is a good idea
         currSqrEuc = Distances.sqeuclidean(refVec,curr)
 
         #initializing certain variables
@@ -153,15 +153,15 @@ function eucGma(; k::Int64,
             #first & second operation
             #zeroth kmer
             @views zerokInt = kmerDict[view(seq,i:i+k-1)] #might be slightly faster to predefine
-            @views currSqrEuc -= (refVec[zerokInt]-curr[zerokInt])^2 # a_old
-            curr[zerokInt] -= 1
-            @views currSqrEuc += (refVec[zerokInt]-curr[zerokInt])^2 # a_new
+            @views currSqrEuc -= (refVec[zerokInt]-curr_kmer_freq[zerokInt])^2 # a_old
+            curr_kmer_freq[zerokInt] -= 1
+            @views currSqrEuc += (refVec[zerokInt]-curr_kmer_freq[zerokInt])^2 # a_new
 
             #last kmer
             @views KendInt = kmerDict[view(seq,i+windowsize-k:i+windowsize-1)]
-            @views currSqrEuc -= (refVec[KendInt]-curr[KendInt])^2 # b_old
-            curr[KendInt] += 1
-            @views currSqrEuc += (refVec[KendInt]-curr[KendInt])^2 # b_new
+            @views currSqrEuc -= (refVec[KendInt]-curr_kmer_freq[KendInt])^2 # b_old
+            curr_kmer_freq[KendInt] += 1
+            @views currSqrEuc += (refVec[KendInt]-curr_kmer_freq[KendInt])^2 # b_new
 
             #convert to kmer Distance and push to results
             push!(resultVec, currSqrEuc * ScaleFactor)

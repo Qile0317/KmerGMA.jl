@@ -9,6 +9,19 @@ function getSeq(seq::FASTX.FASTA.Record)
 
 export getSeq
 
+# standard dictionary based kmer frequency from scratch with some given imputs, used in GMA. 
+# replacing with the proposed optimal version can save almost a minute on 4 billion bps from 5 to 4 mins
+function fasterKF(k::Int64, seq::LongSubSeq{DNAAlphabet{4}}, #::LongSequence{DNAAlphabet{4}},
+    KD::Dict{LongSequence{DNAAlphabet{4}}, Int64}, rv::Vector{Float64})
+    k -= 1
+    for i in 1:length(seq)-k
+        rv[KD[view(seq, i:i+k)]] += 1 
+    end
+    #return rv
+end
+
+export fasterKF
+
 #in the future i hope to be able to iterate and read at the same time through the file. That would speed it up dramatically.
 
 """

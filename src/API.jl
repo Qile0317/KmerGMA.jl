@@ -1,6 +1,7 @@
 """
       findGenes(; genome,
-                  ref::String,
+                  ref,
+                  hasN::Bool = true,
                   mode::String = "return",
                   fileloc::String = "noPath",
                   k::Int64 = 6,
@@ -20,7 +21,7 @@ Where `SED` indicates how similar the match is to the references.
 ...
 # Arguments
 - `genome`: Either a String or a Vector of strings, where each string is the file location of a `.fasta` file containing the genome.
-- `ref::String`: the file location of a fasta file containing the reference sequence(s). The references should be very similar in length
+- `ref`: the file location of a fasta file containing the reference sequence(s). The references should be very similar in length. OR a pre-generated reference kmer frequency dictionary.
 
 # Optional Arguments
 - `mode = "return"`: what the function should return the gene matches in. There are three modes, `return`, `print`, `write`. 
@@ -38,8 +39,9 @@ It is recommended to leave all other optional arguments as is, especially the bu
 However, playing with the `thr` argument could return more or less matches every time. 
 """
 function findGenes(; #FASTQ, RNA and AA compaibility will be added in the future. Also distance metric may be changed in future
-   genome, 
-   ref::String,
+   genome::Any, 
+   ref::Any,
+   hasN::Bool = true,
    mode::String = "return",
    fileloc::String = "noPath",
    k::Int64 = 6, 
@@ -52,23 +54,38 @@ function findGenes(; #FASTQ, RNA and AA compaibility will be added in the future
    k < 4 && println("Such a low k value may not yield the most accurate results")
    if windowsize == 0; windowsize = avgRecLen(ref) end
 
-   #variables needed for the GMA
-   KD = genKmers(k;withN=true) #generation of kmer dictionary
-   refKFD = genRef(k,ref,KD) #generation of kmer frequency dict
-   refKFV = kfv(refKFD,KD) #generation of kmer frequency dict
+   #gvariables for other GMA
    RV = fill(0.0,5^k)
-   ScaleFactor = 1/(2*k) #maybe this could be an argument as well?
-   if thr == 0.0; thr += findRandThr(ref,refKFD,KD, ScaleFactor=ScaleFactor) end #random threshold, based on seed 1112
    threshold_buffer_tag = " | thr = "*string(round(thr))*" | buffer = "*string(buffer) # Maybe it would be wise to put which record it is
+   ScaleFactor = 1/(2*k) #maybe this could be an argument as well?
+   KD = genKmers(k;withN=true) 
+   refKFD = nothing 
+
+   #handling KFD 
+   if typeof(ref) == String
+      refKFD = genRef(k,ref,KD) #generation of kmer frequency dict
+   else #assume its dict 
+      refKFD = ref
+   end
+   refKFV = kfv(refKFD,KD) #generation of kmer frequency dict
+   
+   #threshold generation (memory intensive when benchmarking)
+   if thr == 0.0; thr += findRandThr(ref,refKFD,KD, ScaleFactor=ScaleFactor) end #random threshold, based on seed 1112
+
+   #check which verson to use. this can be optimized as quite alot of vars are unessecarily initialized above (will fix in next patch)
+   if !hasN
+      return gma_Nless_API(genome=genome,ref=ref,thr=thr,mode=mode,fileloc=fileloc,k=k,windowsize=windowsize,buffer=buffer,results=results)
+   end #I need to test this though 
 
    #genome mining, for string and vector of strings which is the database.
    if typeof(genome) == String #need to incorporate the eucGma here.
       open(FASTA.Reader, genome) do io
          for rec in io
+            fill!(RV,0.0)
             gma(k=k, record = rec, refVec = refKFV,
             windowsize = windowsize, kmerDict = KD,
             path=fileloc, thr=thr, buff=buffer,
-            rv = fill!(RV,0.0), #mutate version is important to save memory
+            curr_kmer_freq = RV, 
             thrbuff=threshold_buffer_tag,
             mode = mode, resultVec = results,
             ScaleFactor = ScaleFactor)
@@ -78,10 +95,11 @@ function findGenes(; #FASTQ, RNA and AA compaibility will be added in the future
       for str in genome
          open(FASTA.Reader, str) do io
             for rec in io
+               fill!(RV,0.0)
                gma(k=k, record = rec, refVec = refKFV,
                windowsize = windowsize, kmerDict = KD,
                path=fileloc, thr=thr, buff=buffer,
-               rv = fill!(RV,0.0),
+               curr_kmer_freq = RV,
                thrbuff=threshold_buffer_tag,
                mode = mode, resultVec = results,
                ScaleFactor = ScaleFactor)
@@ -90,10 +108,8 @@ function findGenes(; #FASTQ, RNA and AA compaibility will be added in the future
       end
    end
    if mode == "return"; (return results) end
-    #if BLAST
-      #blastseq = eqBLAST(output) #blasting
-      #return blastseq #unfinished
-   #end
 end
 
 export findGenes
+
+#gotta update the doc so that Nless
