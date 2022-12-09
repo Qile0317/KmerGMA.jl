@@ -23,6 +23,16 @@ Pkg.add(PackageSpec(name="KmerGMA", url = "https://github.com/Qile0317/KmerGMA.j
 
 If you are interested in the cutting edge of the development, please check out the master branch to try new features before release.
 
+## Usage Example
+To conduct homology searching of a set of sequences in a local fasta file with another query sequence fasta file, simply do:
+```julia
+using KmerGMA
+KmerGMA.findGenes(genome = "sequences.fasta", ref = "query_sequences.fasta")
+```
+Where `genome` is the file location of a fasta file containing sequences to search over, and `ref` is the file location of a fasta file containing the query sequence or a set of alike query sequences (For example V-genes). 
+
+`genome` can also be a vector of Strings indicating seperate fasta files to search over.
+
 ## Documentation
 Documentation is deployed at https://qile0317.github.io/KmerGMA.jl
 
