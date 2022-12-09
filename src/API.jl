@@ -16,7 +16,7 @@ The format of the description appears as so:
 
    "Identifier | SED = a | Pos = b:c | thr = d | buffer = e"
 
-Where `SED` indicates how similar the match is to the references.
+Where `SED` indicates how similar the match is to the references, and the lower, the more similar in terms of kmer distance.
 
 ...
 # Arguments
@@ -24,6 +24,7 @@ Where `SED` indicates how similar the match is to the references.
 - `ref`: the file location of a fasta file containing the reference sequence(s). The references should be very similar in length. OR a pre-generated reference kmer frequency dictionary.
 
 # Optional Arguments
+- `hasN::Bool = true`: Whether both the fasta files from `ref` and the query `genome` contains any undefined nucleotide `N`. If `false` it runs an alternate algorithm that is alot faster than the one accounting for `N` nts. 
 - `mode = "return"`: what the function should return the gene matches in. There are three modes, `return`, `print`, `write`. 
 Return mode returns a vector of FASTA records. Print mode simply prints the fasta sequences in the REPL. 
 Write mode writes the fasta sequences to a fasta file, of which the location has to be given in the `fileloc` argument
@@ -56,7 +57,6 @@ function findGenes(; #FASTQ, RNA and AA compaibility will be added in the future
 
    #gvariables for other GMA
    RV = fill(0.0,5^k)
-   threshold_buffer_tag = " | thr = "*string(round(thr))*" | buffer = "*string(buffer) # Maybe it would be wise to put which record it is
    ScaleFactor = 1/(2*k) #maybe this could be an argument as well?
    KD = genKmers(k;withN=true) 
    refKFD = nothing 
@@ -76,6 +76,8 @@ function findGenes(; #FASTQ, RNA and AA compaibility will be added in the future
    if !hasN
       return gma_Nless_API(genome=genome,ref=ref,thr=thr,mode=mode,fileloc=fileloc,k=k,windowsize=windowsize,buffer=buffer,results=results)
    end #I need to test this though 
+
+   threshold_buffer_tag = " | thr = "*string(round(thr))*" | buffer = "*string(buffer) # Maybe it would be wise to put which record it is
 
    #genome mining, for string and vector of strings which is the database.
    if typeof(genome) == String #need to incorporate the eucGma here.

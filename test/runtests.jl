@@ -170,6 +170,58 @@ end
     #need to test for when buffer exceeds front or back, but it should be pretty straightforward
 end
 
+@testset "GMA_Nless.jl" begin
+    @testset "kmer_count!" begin
+        a = fill(0.0,4^2)
+        kmer_count!(str = dna"ACCCACCAAGGGCAGGGCTGAGCCCCAGAG",k=2,
+        bins = a, mask = unsigned(4^2 - 1), Nt_bits = NUCLEOTIDE_BITS)
+
+        @test a == [1.0, 2.0, 5.0, 0.0, 4.0, 
+        6.0, 0.0, 1.0, 2.0, 3.0, 4.0, 0.0, 0.0, 0.0, 1.0, 0.0]
+
+        a = fill(0.0,4^5)
+        kmer_count!(str = dna"ACCCACCAAGGGCAGGGCTGAGCCCCAGAG",k=5,
+        bins = a, mask = unsigned(4^5 - 1), Nt_bits = NUCLEOTIDE_BITS)
+
+        @test a[10:20] == [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        @test a[630:636] == [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0]
+    end
+
+    @testset "gen_ref" begin
+        @test gen_ref(tf, 1) == [63.25, 73.70238095238095, 89.26190476190476, 62.38095238095238]
+
+        @test gen_ref(tf,2) == [11.178571428571429, 15.964285714285714, 
+        24.154761904761905, 11.88095238095238, 22.76190476190476, 
+        17.904761904761905, 8.154761904761905, 24.88095238095238, 
+        18.607142857142858, 22.202380952380953, 30.369047619047617, 
+        18.07142857142857, 10.702380952380953, 17.047619047619047, 
+        26.166666666666664, 7.5476190476190474]
+
+        @test gen_ref(tf,6)[5:10] == [0.011904761904761904, 
+        0.023809523809523808, 0.0, 0.0, 0.023809523809523808, 0.0]
+    end
+
+    @testset "Nless_API" begin
+        a = gma_Nless_API(genome=GF,ref=tf,thr=16.0) #it should be exactly the same as one of the prior testcases
+
+        @test length(a) == 6
+        @test length(getSeq(a[2])) == 389
+
+        @test FASTX.FASTA.description(a[1]) == "JQ684648.1 | SED = 10.90 | Pos = 8543:8832 | thr = 16.0 | buffer = 50"
+        @test getSeq(a[2])[42:96] == dna"CTCTGAGACTCTCCTGTGCAGCCTCTGGATTCACTTTTGATGATTATGCCATGAG"
+        @test getSeq(a[4])[317:328] == dna"AGACACAAACCT"
+        @test getSeq(a[5])[198:200] == dna"CAG"
+    end
+
+    @testset "Nless_N_equivalence" begin
+        @test gma_Nless_API(genome=GF,
+        ref=tf,thr=16.0) == findGenes(genome=GF,ref=tf)
+
+        @test gma_Nless_API(genome=GF, #this case is honestly pretty redundant
+        ref=tf,thr=20.0) != findGenes(genome=GF,ref=tf)
+    end
+end
+
 @testset "ExactMatch.jl" begin
     @testset "singleSeq" begin
         @test exactMatch(dna"GAG",dna"CCCCCCCGAGCTTTT") == [8:10]

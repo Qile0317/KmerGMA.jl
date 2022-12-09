@@ -12,19 +12,14 @@ const KmerType = Array{UInt32, 1}
 #mask = unsigned(4^k - 1)
 
 #kmer counting in place, courtesy of the NextGenSeqUtils package
-function kmer_count!(; str::LongSubSeq{DNAAlphabet{4}}, k::Int, 
-    bins::KmerType, mask::UInt64, Nt_bits::Dict{DNA, UInt64})
-    kmer = unsigned(0)
-    for c in str[1:k-1]
-        kmer = (kmer << 2) + Nt_bits[c]
-    end
-    for c in str[k:end]
-        kmer = ((kmer << 2) & mask) + Nt_bits[c]
-        bins[kmer + 1] += 1
-    end
-end
-
-function kmer_count!(; str, k::Int, 
+"""
+    kmer_count!(; str::Any, 
+                  k::Int, 
+                  bins::Vector, 
+                  mask::UInt64, 
+                  Nt_bits::Dict{DNA, UInt64})
+"""
+function kmer_count!(; str::Any, k::Int, 
     bins::Vector, mask::UInt64, Nt_bits::Dict{DNA, UInt64})
     kmer = unsigned(0)
     for c in str[1:k-1]
@@ -35,6 +30,8 @@ function kmer_count!(; str, k::Int,
         bins[kmer + 1] += 1
     end
 end
+
+export kmer_count!
 
 #fast reference generation
 function gen_ref(path::String, k::Int, Nt_bits = NUCLEOTIDE_BITS)
@@ -180,6 +177,18 @@ end
 export gma_Nless
 
 """
+    gma_Nless_API(; genome::Any, 
+                    ref::Any,
+                    thr::Float64, 
+                    Nt_bits = NUCLEOTIDE_BITS, #shouldnt even need this 
+                    mode::String = "return",
+                    fileloc::String = "noPath",
+                    k::Int64 = 6, 
+                    windowsize::Int64 = 0, 
+                    buffer::Int64 = 50,
+                    results::Vector{FASTA.Record} = FASTA.Record[])
+    
+For devs only
 """
 function gma_Nless_API(; #FASTQ, RNA and AA compaibility will be added in the future. Also distance metric may be changed in future
     genome::Any, 
@@ -250,42 +259,3 @@ function gma_Nless_API(; #FASTQ, RNA and AA compaibility will be added in the fu
  end
  
  export GMA_Nless_API
-
- """
- refile = "C:/Users/lu_41/.julia/dev/KmerGMA/test/Alp_V_ref.fasta"
- genBank_long = "C:/Users/lu_41/.julia/dev/KmerGMA/test/Loci.fasta"
- genBank = "C:/Users/lu_41/.julia/dev/KmerGMA/test/Alp_V_locus.fasta"
- VicPac = "C:/Users/lu_41/Desktop/Sofo Prok/VicPac32.fna"
-
-reference = gen_ref(refile,6)
-@benchmark gma_Nless_API(genome=genBank,ref=reference,thr=30.0, windowsize=289)
-#holy moly this speed is about 25 times faster 
-"""
-"""
-BenchmarkTools.Trial: 4296 samples with 1 evaluation.
- Range (min … max):  642.300 μs …   5.791 ms  ┊ GC (min … max): 0.00% … 73.16%
- Time  (median):       1.230 ms               ┊ GC (median):    0.00%
- Time  (mean ± σ):     1.160 ms ± 362.735 μs  ┊ GC (mean ± σ):  1.13% ±  4.63%
-
-                           ▆ █ ▆
-  ▇▃█▃▇▃▃▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█▄█▆█▆▅▄▃▃▃▃▃▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ ▂
-  642 μs           Histogram: frequency by time         1.94 ms <
-
- Memory estimate: 202.14 KiB, allocs estimate: 138.
-"""
-
-#@benchmark gma_Nless_API(genome=genBank_long,ref=reference,thr=30.0, windowsize=289)
-"""
-BenchmarkTools.Trial: 385 samples with 1 evaluation.
- Range (min … max):   7.033 ms … 17.993 ms  ┊ GC (min … max): 0.00% … 12.63%
- Time  (median):     13.912 ms              ┊ GC (median):    0.00%
- Time  (mean ± σ):   12.985 ms ±  2.702 ms  ┊ GC (mean ± σ):  0.53% ±  2.66%
-
-                                          ▄█▆▂
-  ▃▄▅▅▅▃▃▄▃▁▁▂▁▂▁▂▁▂▃▁▂▁▁▂▁▁▁▁▁▁▁▁▂▁▂▂▁▁▃▅████▆▅▅▄▃▄▃▄▃▃▃▃▃▂▂ ▃
-  7.03 ms         Histogram: frequency by time        16.7 ms <
-
- Memory estimate: 1.43 MiB, allocs estimate: 335.
-"""
-
-#@benchmark findGenes()
