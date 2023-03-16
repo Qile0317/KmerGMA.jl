@@ -8,7 +8,6 @@ makedocs(
                 "Home" => "index.md"
                 "Homology searching" => "findGenes.md"
                 "Exact gene finding" => "exactMatch.md"
-                "Utilities" => "Utils.md"
                ])
 deploydocs(;
     repo="github.com/Qile0317/KmerGMA.jl.git", branch = "gh-pages", devbranch = "master"

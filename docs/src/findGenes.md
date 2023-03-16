@@ -9,4 +9,4 @@ KmerGMA.write_results
 ```
 
 !!! note
-    The documentation is unfinished and likely quite unclear. For more details on how the algorithm functions, some pre-print of the homology searching approach will be uploaded soon.
+    The documentation is unfinished and may be somewhat unclear. For more details on how the algorithm functions, some pre-print of the homology searching approach will be uploaded soon.
