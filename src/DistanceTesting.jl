@@ -12,5 +12,7 @@ function estimate_optimal_threshold(RV::Kfv, average_length::Int64;
     return (cumulative_dist_to_RV/num_trials) - buffer
 end
 
+export estimate_optimal_threshold
+
 # to have a better buffer, the variance should be determined and take the lower bound - some additinoal val.
 # will put in the mutation plotting stuff here

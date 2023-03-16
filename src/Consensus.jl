@@ -11,11 +11,15 @@ mutable struct Profile
     Base.getindex(p::Profile, nt::DNA) = p.vecs[NUCLEOTIDE_BITS[nt]+1]
 end
 
+export Profile
+
 function add_consensus!(vec::Profile, seq)
     for i in eachindex(seq) 
         vec[seq[i]][i] += 1 
     end
 end
+
+export add_consensus!
 
 function lengthen!(p::Profile, new_len::Int64)
     if new_len > p.len
@@ -27,6 +31,8 @@ function lengthen!(p::Profile, new_len::Int64)
         p.len = new_len
     end
 end
+
+export lengthen!
 
 function consensus_seq(consensus::Profile, )
     curr_max, curr_cons_max = dna"A"^(consensus.len), copy(consensus.vecs[1])
@@ -40,3 +46,5 @@ function consensus_seq(consensus::Profile, )
     end
     return curr_max
 end
+
+export consensus_seq

@@ -133,6 +133,8 @@ function ac_gma_testing!(; inp::InputConsts,
     end
 end
 
+export ac_gma_testing!
+
 # should use profiler for optimization
 
 """

@@ -12,6 +12,8 @@ function kmer_count(str::DnaSeq, k::Int, Nt_bits::DnaBits = NUCLEOTIDE_BITS)
     return bins
 end
 
+export kmer_count
+
 function kmer_count!(; str::DnaSeq, k::Int, 
     bins::Vector, mask::UInt,
     Nt_bits::DnaBits = NUCLEOTIDE_BITS)
@@ -26,6 +28,8 @@ function kmer_count!(; str::DnaSeq, k::Int,
     end
 end
 
+export kmer_count!
+
 # pairwise kmer distance of two sequences, not optimized for performance
 function kmer_dist(seq1, seq2, k::Int, Nt_bits::DnaBits = NUCLEOTIDE_BITS)
     return (1/(2*k))*Distances.sqeuclidean(kmer_count(seq1, k, Nt_bits), kmer_count(seq2, k, Nt_bits))
@@ -34,3 +38,5 @@ end
 function kmer_dist(seq1::DnaSeq, KFV::Kfv, k::Int, Nt_bits::DnaBits = NUCLEOTIDE_BITS)
     return (1/(2*k))*Distances.sqeuclidean(kmer_count(seq1, k, Nt_bits), KFV)
 end
+
+export kmer_dist

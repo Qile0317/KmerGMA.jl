@@ -44,6 +44,8 @@ function gen_ref_ws_cons(reference_seqs, k::Int; get_maxlen = false, Nt_bits::Dn
     return answer.*len, Int(round(cumulative_nts*len)), consensus_seq(curr_profile)
 end
 
+export gen_ref_ws_cons
+
 # version for RV clustering %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # helper function to determine if num is in which range
@@ -55,6 +57,8 @@ function get_cluster_index(inp, cutoffs::Vector)
     end
     return answer
 end
+
+export get_cluster_index
 
 """
     cluster_ref_API(
@@ -120,3 +124,5 @@ function cluster_ref_API(reference_seqs::String, k::Int;
     end
     return KFVs, windowsizes, consensus_vec, invalid_vec
 end
+
+export cluster_ref_API

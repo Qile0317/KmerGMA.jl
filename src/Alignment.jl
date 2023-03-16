@@ -19,4 +19,6 @@ function cigar_to_UnitRange(aligned_obj)
     end
 end
 
+export cigar_to_UnitRange
+
 # known issue in alignment: sometimes the C/G in a V gene doesn match to the correct corresponding G/C, messing up the alignment and cigar

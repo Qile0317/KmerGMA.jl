@@ -14,6 +14,8 @@ const NUCLEOTIDE_BITS = Dict{BioSequences.DNA, UInt}(
     DNA_N => unsigned(3) # somehow has worked wonders.
 ) 
 
+export NUCLEOTIDE_BITS
+
 """
     getSeq(seq::FASTA.Record)
 
