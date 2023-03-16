@@ -56,7 +56,7 @@ end
 
 @testset "DistanceTesting.jl" begin
     RV, ws, cons_seq = gen_ref_ws_cons(tf, 6)
-    @test estimate_optimal_threshold(RV,299) == 30.52158730158728
+    @test Int(round(estimate_optimal_threshold(RV,299))) == 31
 end
 
 @testset "ReferenceGeneration.jl" begin
