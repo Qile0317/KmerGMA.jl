@@ -5,7 +5,9 @@ import Core
     kmer_count(str::DnaSeq, k::Int, Nt_bits::DnaBits = NUCLEOTIDE_BITS)
 
 Simple kmer counting function for a DNA BioSequence `str`, where `k` is the kmer length to count.
-The function returns a kmer frequency vector where each INDEX of the vector corresponds to a unique kmer, where the 
+The function returns a kmer frequency vector where each INDEX of the vector corresponds to a unique kmer.
+For each index, the unsigned bits of the index correspond to a binary representation of sequences where two bits encode one nucleotide.
+To see what kmer each index corresponds to, see the function `as_kmer`
 """
 function kmer_count(str::DnaSeq, k::Int, Nt_bits::DnaBits = NUCLEOTIDE_BITS)
     bins, mask, kmer = zeros(4^k), unsigned((4^k)-1), unsigned(0)
