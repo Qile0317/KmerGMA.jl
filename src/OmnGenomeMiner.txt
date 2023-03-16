@@ -1,4 +1,5 @@
 # alternative approach for multiple RVs that account for duplicates. Unfinished and Bugged at the moment.
+# the best way forward is likely to just make a sub function that "submits a request" every time there's a candidate hit
 
 function Omn_KmerGMA!(;
     genome_path::String,
