@@ -1,117 +1,105 @@
-"""
-      findGenes(; genome,
-                  ref,
-                  hasN::Bool = true,
-                  mode::String = "return",
-                  fileloc::String = "noPath",
-                  k::Int64 = 6,
-                  windowsize::Int64 = 0,
-                  thr::Int64 = 0,
-                  buffer::Int64 = 50,
-                  resultVec::Vector{FASTA.Record} = FASTA.Record[])
+using FASTX
 
-The main API to find all gene matches in a genome from a reference sequence/reference sequence set.
-Returns the approximate matches as FASTA records. The descriptions of the record contain information about the match. 
+# version without clustering
+
+"""
+    KmerGMA.findGenes(;
+        genome_path::String,
+        ref_path::String,
+        do_cluster::Bool = false, # to be implemented
+        k::Int = 6,
+        KmerDistThr::Union{Int64, Float64} = 0,
+        buffer::Int64 = 50,
+        do_align::Bool = true,
+        do_return_dists::Bool = false,
+        do_return_hit_loci::Bool = false,
+        do_return_align::Bool = false)
+
+The main API to conduct homolohy searching in a genome, using a kmer-based sequence similarity metric, against a a reference sequence set. For example, the set of all germline V genes of a mammal.
+Returns the approximate matches as FASTA record vector WITHIN A VECTOR of length 1 in the default configuration of the parameters. The descriptions of the record contain information about the match. 
 The format of the description appears as so:
 
-   "Identifier | SED = a | Pos = b:c | thr = d | buffer = e"
+   "Identifier | dist = a | MatchPos = b:c | GenomePos = e"
 
-Where `SED` indicates how similar the match is to the references, and the lower, the more similar in terms of kmer distance.
+Where `Identifier` is the contig ID of the genome where the current hit was found. `dist` is the kmer similarity, and `MatchPos` is the unitrange for the match in the contig.
+`GenomePos` is the cumulative nucleotides that have been iterated over until the current contig.
 
 ...
 # Arguments
-- `genome`: Either a String or a Vector of strings, where each string is the file location of a `.fasta` file containing the genome.
-- `ref`: the file location of a fasta file containing the reference sequence(s). The references should be very similar in length. OR a pre-generated reference kmer frequency dictionary.
+- `genome_path`: a string that should be the path of the genome to conduct homology searching on.
+- `ref_path`: the file location of a fasta file containing the reference sequence(s). The references should be very similar in length.
 
 # Optional Arguments
-- `hasN::Bool = true`: Whether both the fasta files from `ref` and the query `genome` contains any undefined nucleotide `N`. If `false` it runs an alternate algorithm that is alot faster than the one accounting for `N` nts. 
-- `mode = "return"`: what the function should return the gene matches in. There are three modes, `return`, `print`, `write`. 
-Return mode returns a vector of FASTA records. Print mode simply prints the fasta sequences in the REPL. 
-Write mode writes the fasta sequences to a fasta file, of which the location has to be given in the `fileloc` argument
-- `fileloc::String = "noPath"`: If the mode argument is `"write"`, this should be the location of a fasta file that the results should be written into.
+- `do_cluster::Bool = false`: work in progress, has no functionality at the moment
 - `k::Int64 = 6`: the kmer length to use for approximate matching. Generally it should probably remain between 5 - 10 and probably does not have a profound impact on how the matches are found. Check out the pre-print for more information
-- `windowsize::Int64 = 0`: the size of the returned matches. It should be the average length of all reference sequences and is computed automatically if the argument is left as 0.
-- `thr::Int64 = 0`: the squared euclidian distance threshold for sequences. Out of the context of the algorithm, lower values mean matches have to be more similar to the references. If left as 0, it is automatically computed. Once again the pre-print has information on this argument.
-- `buffer::Int64 = 0`: the amount of nucleotides left and right of a matched sequence that should be added to the returned fasta sequences
+- `KmerDistThr::Int64 = 0`: the Kmer Distance distance threshold for sequence matches to the query reference sequence set. Out of the context of the algorithm, lower values mean matches have to be more similar to the references. If left as 0, it is automatically computed. Once again the pre-print has information on this argument.
+- `buffer::Int64 = 50`: the amount of nucleotides left and right of a matched sequence that should be added to the returned fasta sequences, as KmerGMA is a heuristic
+- `do_align`: Whether to align the hits+bufer region to the consensus sequence of the references. Highly recommended to keep as `true`
+- `do_return_dists`: dangerous boolean to indicate whether the kmer distances along every window alon ghte genome should be returned in a vector
+- `do_return_hit_loci`: if `true`, will return an additional vector of the position within the genomic sequences of each hit, corresponding to the index in the hit vector.
+- `do_return_align`: if `true`, will return an additional vector of alignment object of each hit to the consensus reference sequence.
 ...
 
-It is recommended to leave all other optional arguments as is, especially the buffer = 50 argument. The purpose of the algorithm is to find approximate matches that can then be BLASTed and aligned.
+The last three arguments would add term to the output. The output vector would incorporate the respective vectors in the same order of priority if any of the parameters are true.
 
-However, playing with the `thr` argument could return more or less matches every time. 
+Note: Playing with the `KmerDistThr` argument could return more or less matches every time. 
 """
-function findGenes(; #FASTQ, RNA and AA compaibility will be added in the future. Also distance metric may be changed in future
-   genome::Any, 
-   ref::Any,
-   hasN::Bool = true,
-   mode::String = "return",
-   fileloc::String = "noPath",
-   k::Int64 = 6, 
-   windowsize::Int64 = 0,
-   thr::Float64 = 0.0, 
-   buffer::Int64 = 50,
-   results::Vector{FASTA.Record} = FASTA.Record[])
+function findGenes(; genome_path::String, ref_path::String, do_cluster::Bool = false, # to be implemented
+    k::Int = 6, KmerDistThr::Union{Int64, Float64} = 0, buffer::Int64 = 50, do_align::Bool = true,
+    do_return_dists::Bool = false, do_return_hit_loci::Bool = false, do_return_align::Bool = false)
 
-   #managing undeclared variables
-   k < 4 && println("Such a low k value may not yield the most accurate results")
-   if windowsize == 0; windowsize = avgRecLen(ref) end
+    if k < 5; @warn "Such a low k value of $k likely won't yield the most accurate results" end
+    if do_return_dists; @warn "Setting do_return_dists to true may be very memory intensive" end 
 
-   #gvariables for other GMA
-   RV = fill(0.0,5^k)
-   ScaleFactor = 1/(2*k) #maybe this could be an argument as well?
-   KD = genKmers(k;withN=true) 
-   refKFD = nothing 
+    RV, windowsize, consensus_refseq = gen_ref_ws_cons(ref_path, k)
 
-   #handling KFD 
-   if typeof(ref) == String
-      refKFD = genRef(k,ref,KD) #generation of kmer frequency dict
-   else #assume its dict 
-      refKFD = ref
-   end
-   refKFV = kfv(refKFD,KD) #generation of kmer frequency dict
-   
-   #threshold generation (memory intensive when benchmarking)
-   if thr == 0.0; thr += findRandThr(ref,refKFD,KD, ScaleFactor=ScaleFactor) end #random threshold, based on seed 1112
+    estimated_optimal_KmerDistThr = estimate_optimal_threshold(RV, windowsize)
+    if KmerDistThr == 0
+        KmerDistThr = estimated_optimal_KmerDistThr
+    elseif KmerDistThr < estimated_optimal_KmerDistThr
+        @warn "The kmer distance threshold $KmerDistThr for k = $k is likely too high, and can result in many false positives"
+    end
+    
+    KmerGMA_constant_parameters = init_InputConsts(
+        genome_path = genome_path, refVec = RV, consensus_refseq = consensus_refseq,
+        k = k, windowsize = windowsize, thr = KmerDistThr, buff = buffer,
+        mask = unsigned(4^k - 1), ScaleFactor = 1/(2*k), 
+        do_align = do_align, do_return_dists = do_return_dists,
+        do_return_align = do_return_align, get_hit_loci = do_return_hit_loci);
+    
+    hit_vector = FASTX.FASTA.Record[]
+    dist_vec, hit_loci_vec, alignment_vec = Float64[], Int[], []  
+    curr_KFV, cumulative_length_in_genome = zeros(4^k), 0
 
-   #check which verson to use. this can be optimized as quite alot of vars are unessecarily initialized above (will fix in next patch)
-   if !hasN
-      return gma_Nless_API(genome=genome,ref=ref,thr=thr,mode=mode,fileloc=fileloc,k=k,windowsize=windowsize,buffer=buffer,results=results)
-   end #I need to test this though 
+    ac_gma_testing!(inp = KmerGMA_constant_parameters,
+        curr_kmer_freq = curr_KFV, dist_vec = dist_vec,
+        result_align_vec = alignment_vec,
+        hit_loci_vec = hit_loci_vec, genome_pos = cumulative_length_in_genome,
+        resultVec = hit_vector)
 
-   threshold_buffer_tag = " | thr = "*string(round(thr))*" | buffer = "*string(buffer) # Maybe it would be wise to put which record it is
-
-   #genome mining, for string and vector of strings which is the database.
-   if typeof(genome) == String #need to incorporate the eucGma here.
-      open(FASTA.Reader, genome) do io
-         for rec in io
-            fill!(RV,0.0)
-            gma(k=k, record = rec, refVec = refKFV,
-            windowsize = windowsize, kmerDict = KD,
-            path=fileloc, thr=thr, buff=buffer,
-            curr_kmer_freq = RV, 
-            thrbuff=threshold_buffer_tag,
-            mode = mode, resultVec = results,
-            ScaleFactor = ScaleFactor)
-         end
-      end
-   else
-      for str in genome
-         open(FASTA.Reader, str) do io
-            for rec in io
-               fill!(RV,0.0)
-               gma(k=k, record = rec, refVec = refKFV,
-               windowsize = windowsize, kmerDict = KD,
-               path=fileloc, thr=thr, buff=buffer,
-               curr_kmer_freq = RV,
-               thrbuff=threshold_buffer_tag,
-               mode = mode, resultVec = results,
-               ScaleFactor = ScaleFactor)
-            end
-         end
-      end
-   end
-   if mode == "return"; (return results) end
+    # return results
+    output_vector = Any[hit_vector]
+    if do_return_hit_loci; push!(output_vector, hit_loci_vec) end
+    if do_return_align; push!(output_vector, alignment_vec) end 
+    if do_return_dists; push!(output_vector, dist_vec) end
+    return output_vector
 end
 
 export findGenes
 
-#gotta update the doc so that Nless
+"""
+    write_results(KmerGMA_result_vec::Vector{FASTX.FASTA.Record}, file_path::String, width::Int64 = 95)
+
+Writes all FASTA Records (from the FASTX package) from a vector into a fasta file location `file_path`.
+`width` is an optional argument that indicates the maximum width of sequences written to the file per line.
+"""
+function write_results(KmerGMA_result_vec::Vector{FASTX.FASTA.Record}, file_path::String, width::Int64 = 95)
+    FASTA.Writer(open(file_path, "a"), width = width) do writer
+        for hit in KmerGMA_result_vec
+            write(writer, hit)
+        end
+    end
+    println("complete")
+end
+
+export write_results

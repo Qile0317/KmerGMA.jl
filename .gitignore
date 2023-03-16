@@ -8,3 +8,6 @@ docs/build/
 docs/Manifest.toml
 currUpdates.md
 src/kmerCount.jl
+src/testing.ipynb
+a.exe
+new_src

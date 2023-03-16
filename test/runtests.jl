@@ -1,225 +1,163 @@
 using KmerGMA
-using Test, BioSequences, FASTX, Random
+using Test, BioSequences, FASTX, Random, BioAlignments
 
 #testing variables
-tf = "Alp_V_ref.fasta"
-gf = "Alp_V_locus.fasta"
-GF = "Loci.fasta"
-KD = Dict(dna"T" => 3, dna"A" => 1, dna"G" => 4, dna"N" => 5, dna"C" => 2)
-kf = [0.0, 0.0, 1.0, 2.0, 0.0, 1.0, 0.0, 0.0, 0.0,
-0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
-0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-KFV = Dict(dna"T" => 62.38095238095238, dna"C" => 73.70238095238095,
-dna"A" => 63.25, dna"G" => 89.26190476190476, dna"N" => 0.0)
+const tf = "Alp_V_ref.fasta"
+const test_mini_genome = "Alp_V_locus.fasta"
+const test_genome = "Loci.fasta"
 
-@testset "simpleExplore.jl" begin
-    @test flipDict(Dict(dna"ATG" => 69, dna"ATGCCCCC" =>
-    420)) == Dict(69 => dna"ATG", 420 => dna"ATGCCCCC")
+# testing sequences 
+const test_seq = dna"ATGCATGC"
+const test_consensus_seq = dna"CAGGTGCAGCTGGTGGAGTCTGGGGGAGGCTTGGTGCAGCCTGGGGGGTCTCTGAGACTCTCCTGTGCAGCCTCTGGATTCACCTTCAGTAGCTATGCCATGAGCTGGGTCCGCCAGGCTCCAGGGAAGGGGCTCGAGTGGGTCTCAGCTATTAATAGTGGTGGTGGTAGCACATACTATGCAGACTCCGTGAAGGGCCGATTCACCATCTCCAGAGACAACGCCAAGAACACGCTGTATCTGCAAATGAACAGCCTGAAACCTGAGGGCACGGCCGTGTATTACTGTGGTAAAGAAGA"
 
-    @test kfv(Dict(dna"A" => 69.0, dna"G" => 420.0,
-    dna"C" => 0.0,dna"N" => 1.0, dna"T" => 42.0),
-    genKmers(1; withN=true)) == [69.0, 0.0, 42.0, 420.0, 1.0]
+test_KFV = [0.0, 0.0, 0.0, 2.0, 1.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0]
 
-    @test percentN(dna"ACGN") == 0.25
-
-    @test avgRecLen(tf) == 289
-
-    @test open(FASTX.FASTA.Reader,tf) do io
-        readerNTs(io) == 24242
-    end
-end
-
-@testset "GMAutils.jl" begin
-    @test open(FASTX.FASTA.Reader,tf) do io
-        getSeq(first(io))[10:20] == dna"CTGGTGCAGCC"
-    end
-
-    @test genKmers(1; withN=true) == KD
-
-    a = fill(0.0,25)
-    fasterKF(2, view(dna"GAGATAC", 1:7),genKmers(2;withN=true), a)
-    @test a == kf
-
-    a = [0.0,0.0,0.0,0.0,0.0]
-    fasterKF(1,view(dna"GAGATAC",1:7),KD,a) 
-    @test a == [3.0,1.0,1.0,2.0,0.0]
-
-    @test kmerFreq(2, dna"GAGATAC") == kf
-end
-
-@testset "RefGen.jl" begin
-    @testset "Reference dictionary generation" begin #this needs to be improved
-        @test genRef(1,tf,KD) == KFV
-
-        @test open(FASTX.FASTA.Reader,tf) do io
-            genRef(1,io,KD) == KFV
-        end
-    end
-
-    @testset "threshold finding function" begin
-        @test findthr(tf,KFV,KD) == 147.38860544217687 #I need to change this w the scalefactor later
-        
-        #random threshold finder. they are seeded to 1112 except the last so testing should be consistent
-        @test findRandThr(tf,KFV,KD) == 121.49633219954649
-        @test findRandThr(tf,KFV,KD; ScaleFactor = 1.0) == 424.79102607709746
-        @test findRandThr(tf,KFV,KD; buff = 20) == 141.4963321995465 # each unit = 1 substitution or 0.6 indel
-        @test findRandThr(tf,KFV,KD; sampleSize = 418) == 155.84678784013605
-        @test findRandThr(tf,KFV,KD; setSeed = 69420) == 121.0918679138322
-    end
-end
-
-@testset "GMA.jl" begin
-    #def variables for testing 
-    target = open(FASTX.FASTA.Reader, gf)
-    goal = first(target)
-    close(target)
-    sixMerDict = genKmers(6,withN=true)
-    refKFD = genRef(6,tf,sixMerDict)
-    refKFV = kfv(refKFD,sixMerDict)
-
-    """ #there seem to be some floating point errors
-    @testset "eucGma" begin
-        res = Float64[]
-        eucGma(k = 6, record = goal, refVec = refKFV,
-        windowsize=289, kmerDict=sixMerDict,
-        rv = fill(0.0, 5^6), resultVec = res)
-
-        @test [436.72619047619065, 438.6309523809526, 
-        440.79761904761926, 442.8214285714288, 
-        442.75000000000017, 442.53571428571445, 
-        446.53571428571445, 450.53571428571445, 
-        452.4642857142859, 454.2738095238097, 
-        460.2738095238097, 466.2738095238097] == res[317:328]
-
-        @test res[6942] == 244.7738095238098
-
-        res = Float64[]
-        eucGma(k = 6, record = goal, refVec = refKFV,
-        windowsize=289, kmerDict=sixMerDict,
-        rv = fill(0.0, 5^6), resultVec = res, 
-        ScaleFactor = 0.8333333333)
-
-        @test res[317:328] == [363.9384920489347, 
-        365.5257936361728, 367.33134919165616, 369.01785712809664, 
-        368.95833331857517, 368.7797618900109, 372.11309522321085, 
-        375.44642855641086, 377.05357141348946, 378.5615079213656, 
-        383.5615079211656, 388.56150792096565]
-
-        @test res[6942] == 203.97817459501573
-    end
-    """
-
-    @testset "gma_return_mode" begin #
-        #reference, genome is already deinfed
-        res = FASTA.Record[FASTA.Record("test", dna"tt")]
-
-        gma(k=6,record=goal, refVec=refKFV,windowsize =289,
-        kmerDict = sixMerDict, thr = 200.0, buff = 50, curr_kmer_freq=fill(0.0,5^6),
-        thrbuff = "test", mode = "return", resultVec = res)
-
-        @test res[1] == FASTA.Record("test", dna"tt") #see if the first record stayed
-        @test getSeq(res[2])[1:30] == dna"GTCTGGGGGAGGCTTGGTGCAGCCTGGGGG"
-        @test getSeq(res[3])[1:30] == dna"CAGGCTCAGGTGCAGCTGGTGGAGTCTGGG" #not sure abt if the seq buffer worked..
-        @test FASTA.description(res[3]) == "AM773548.1 | SED = 130.7 | Pos = 33845:34134test"
-        #more testing of other variables is done in the API.jl testset.
-    end
-end
-
-@testset "API.jl" begin
-    @testset "findGenes_noArgs" begin #it seemed to have gotten worse with findRandThr. I need to add extra
-        a = findGenes(genome = GF, ref = tf)
-
-        @test length(a) == 6 
-        @test length(getSeq(a[2])) == 389
-
-        @test FASTX.FASTA.description(a[1]) == "JQ684648.1 | SED = 10.90 | Pos = 8543:8832 | thr = 16.0 | buffer = 50"
-        @test getSeq(a[2])[42:96] == dna"CTCTGAGACTCTCCTGTGCAGCCTCTGGATTCACTTTTGATGATTATGCCATGAG"
-        @test getSeq(a[4])[317:328] == dna"AGACACAAACCT"
-        @test getSeq(a[5])[198:200] == dna"CAG"
-    end
-    
-    @testset "findGenes_thr=25" begin
-        a = findGenes(genome = GF, ref = tf, thr = 25.0)
-
-        @test length(a) == 10
-        @test getSeq(a[1])[1:60] == dna"TTGTAGCAGCTATTAGCTGGAGTGGTGGTAGCACATACTATGCAGACTCCGTGAAGGGCC"
-        @test getSeq(a[5])[320:end] == dna"AGGAGGCAGCTGGTTTCACGGTTTCCTGTCAGGCTCTGGAGTTTCCTCTCCACAGTGCAGGAACCCCTCT"
-        @test FASTX.FASTA.description(a[1]) == "JQ684648.1 | SED = 10.90 | Pos = 8543:8832 | thr = 25.0 | buffer = 50"
-        @test getSeq(a[9])[12:17] == dna"CCAGGT"
-    end
-
-    @testset "findGenes_k=5" begin
-        a = findGenes(genome = GF, ref = tf, k=5)
-
-        @test length(a) == 6
-        @test FASTX.FASTA.description(a[6]) == "AM773548.1 | SED = 11.26 | Pos = 33843:34132 | thr = 19.0 | buffer = 50"
-        @test getSeq(a[5])[50:75] == dna"TCCTGTGCAGCCTCTGGATTCACCTT"
-        @test getSeq(a[3])[360:end] == dna"ACCCACCAAGGGCAGGGCTGAGCCCCAGAG"
-    end
-
-    @testset "findGenes_inp=Vector" begin
-        a = findGenes(genome = [gf,GF], ref = tf)
-        @test length(a) == 8
-
-        #gf is actually the first sequence of GF
-        @test a[end] == a[2]
-        @test a[1] == a[7]
-        @test getSeq(a[3])[10:21] == dna"AGGATTGGTGCA"
-        @test FASTX.FASTA.description(a[5]) == "AM773729.1 | SED = 10.90 | Pos = 685:974 | thr = 16.0 | buffer = 50"
-    end
-    #need to test for when buffer exceeds front or back, but it should be pretty straightforward
-end
-
-@testset "GMA_Nless.jl" begin
+@testset "Kmers.jl" begin
     @testset "kmer_count!" begin
-        a = fill(0.0,4^2)
-        kmer_count!(str = dna"ACCCACCAAGGGCAGGGCTGAGCCCCAGAG",k=2,
-        bins = a, mask = unsigned(4^2 - 1), Nt_bits = NUCLEOTIDE_BITS)
+        test_bins = zeros(4)
+        kmer_count!(str = test_seq, k = 1, bins = test_bins, mask = unsigned(3))
+        @test test_bins == [2,2,2,2]
 
-        @test a == [1.0, 2.0, 5.0, 0.0, 4.0, 
-        6.0, 0.0, 1.0, 2.0, 3.0, 4.0, 0.0, 0.0, 0.0, 1.0, 0.0]
-
-        a = fill(0.0,4^5)
-        kmer_count!(str = dna"ACCCACCAAGGGCAGGGCTGAGCCCCAGAG",k=5,
-        bins = a, mask = unsigned(4^5 - 1), Nt_bits = NUCLEOTIDE_BITS)
-
-        @test a[10:20] == [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        @test a[630:636] == [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0]
+        test_bins = zeros(16)
+        kmer_count!(str = view(test_seq, 1:8), k = 2, bins = test_bins, mask = unsigned(15))
+        @test test_bins == test_KFV
     end
 
-    @testset "gen_ref" begin
-        @test gen_ref(tf, 1) == [63.25, 73.70238095238095, 89.26190476190476, 62.38095238095238]
+    @testset "kmer_count" begin
+        @test kmer_count(test_seq, 1) == [2,2,2,2]
+        @test kmer_count(view(test_seq, 1:8), 2) == test_KFV
+    end
 
-        @test gen_ref(tf,2) == [11.178571428571429, 15.964285714285714, 
+    @testset "kmer_dist" begin
+        @test kmer_dist(test_seq^25*dna"A"*test_seq^25, test_seq^25*dna"G"*test_seq^25, 2) == 1.0
+        @test kmer_dist(test_seq^25*dna"AA"*test_seq^25, test_seq^25*dna"GT"*test_seq^25, 2) == 2.0
+    end
+end
+
+@testset "Consensus.jl" begin
+    @test Profile(2).vecs == [[0,0],[0,0],[0,0],[0,0]]
+    @test Profile(3)[DNA_A] == [0,0,0]
+
+    a = Profile(8)
+    add_consensus!(a, test_seq)
+    @test a.vecs == [[1, 0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 1, 0, 0, 0, 1], [0, 0, 1, 0, 0, 0, 1, 0], [0, 1, 0, 0, 0, 1, 0, 0]]
+    @test a.len == 8
+
+    lengthen!(a, 9)
+    @test a.vecs == a.vecs == [[1, 0, 0, 0, 1, 0, 0, 0,0], [0, 0, 0, 1, 0, 0, 0, 1,0], [0, 0, 1, 0, 0, 0, 1, 0,0], [0, 1, 0, 0, 0, 1, 0, 0,0]]
+    @test a.len == 9
+
+    add_consensus!(a, test_seq[1:7]*dna"G"); add_consensus!(a, test_seq[1:7]*dna"G")
+    @test a.vecs == [[3, 0, 0, 0, 3, 0, 0, 0, 0], [0, 0, 0, 3, 0, 0, 0, 1, 0], [0, 0, 3, 0, 0, 0, 3, 2, 0], [0, 3, 0, 0, 0, 3, 0, 0, 0]]
+    @test a.len == 9
+
+    @test consensus_seq(a)[1:8] == test_seq[1:7]*dna"G"
+end
+
+@testset "DistanceTesting.jl" begin
+    @test estimate_optimal_threshold(RV,299) == 30.52158730158728
+end
+
+@testset "ReferenceGeneration.jl" begin
+    @testset "gen_ref_ws_cons" begin
+        @test gen_ref_ws_cons(tf, 1) == ([63.25, 73.70238095238095, 89.26190476190476, 62.38095238095238], 289, test_consensus_seq)
+        @test gen_ref_ws_cons(tf, 1; get_maxlen = true) == ([63.25, 73.70238095238095, 89.26190476190476, 62.38095238095238], 289, test_consensus_seq, 299)
+        @test gen_ref_ws_cons(tf,2)[1] == [11.178571428571429, 15.964285714285714, 
         24.154761904761905, 11.88095238095238, 22.76190476190476, 
         17.904761904761905, 8.154761904761905, 24.88095238095238, 
         18.607142857142858, 22.202380952380953, 30.369047619047617, 
         18.07142857142857, 10.702380952380953, 17.047619047619047, 
         26.166666666666664, 7.5476190476190474]
 
-        @test gen_ref(tf,6)[5:10] == [0.011904761904761904, 
+        @test gen_ref_ws_cons(tf,6)[1][5:10] == [0.011904761904761904, 
         0.023809523809523808, 0.0, 0.0, 0.023809523809523808, 0.0]
+
+        record_vec, reader = FASTA.Record[], open(FASTA.Reader, tf)
+        for record in reader; push!(record_vec, record) end; close(reader)
+
+        @test gen_ref_ws_cons(record_vec, 1) ==  ([63.25, 73.70238095238095, 89.26190476190476, 62.38095238095238], 289, test_consensus_seq)
+        @test gen_ref_ws_cons(record_vec, 1; get_maxlen = true) == ([63.25, 73.70238095238095, 89.26190476190476, 62.38095238095238], 289, test_consensus_seq, 299)
     end
 
-    @testset "Nless_API" begin
-        a = gma_Nless_API(genome=GF,ref=tf,thr=16.0) #it should be exactly the same as one of the prior testcases
+    @testset "cluster_ref_API" begin
+        @test get_cluster_index(5, [1,2,6,10]) == 3
+        @test get_cluster_index(12, [1,2,6,10]) == 5
+        @test get_cluster_index(0, [1,2,6,10]) == 1
+        
+        a = cluster_ref_API(tf, 1)
+        @test a[1] == [[62.935483870967744, 71.90322580645162, 90.19354838709677, 62.774193548387096], [63.666666666666664, 70.83333333333333, 90.83333333333333, 63.916666666666664], [63.0, 69.07692307692308, 90.46153846153847, 64.76923076923077], [63.535714285714285, 79.07142857142857, 87.0, 60.17857142857143]]
+        @test a[2] == [288,289,287,290]
+        @test a[3][1][1:4] == dna"CAGG" # doesen't test all sequences lol but they should be fine if all prev tests passed
+        @test a[4] == [false,false,false,false]
+    end
+end
 
-        @test length(a) == 6
-        @test length(getSeq(a[2])) == 389
+@testset "Alignment.jl" begin
+    score_model = AffineGapScoreModel(EDNAFULL, gap_open=-5, gap_extend=-1)
+    aln_obj = pairalign(SemiGlobalAlignment(),dna"ATGCATGC",dna"GGGGGATGCATGCAAAAA",score_model)
+    @test cigar_to_UnitRange(aln_obj) == 6:13
 
-        @test FASTX.FASTA.description(a[1]) == "JQ684648.1 | SED = 10.90 | Pos = 8543:8832 | thr = 16.0 | buffer = 50"
-        @test getSeq(a[2])[42:96] == dna"CTCTGAGACTCTCCTGTGCAGCCTCTGGATTCACTTTTGATGATTATGCCATGAG"
-        @test getSeq(a[4])[317:328] == dna"AGACACAAACCT"
-        @test getSeq(a[5])[198:200] == dna"CAG"
+    aln_obj = pairalign(SemiGlobalAlignment(),dna"ATGCATGC",dna"GGGGGATGCTTATGCAAAAA",score_model)
+    @test cigar_to_UnitRange(aln_obj) == 6:15
+end
+
+@testset "GenomeMiner.jl" begin
+    RV, ws, cons_seq = gen_ref_ws_cons(tf, 6)
+
+    @testset "do_align = false" begin
+        consts = init_InputConsts(genome_path = test_genome,
+        refVec = RV, consensus_refseq = cons_seq, windowsize = ws,
+        thr = 30, do_align = false)
+
+        res = FASTA.Record[FASTA.Record("test", dna"tt")]
+        ac_gma_testing!(inp = consts, resultVec = res)
+
+        @test length(res) == 8
+        @test FASTA.description(res[3]) == "JQ684648.1 | dist = 30.0 | MatchPos = 20131:20519 | GenomePos = 0"
+        @test FASTA.description(res[end-2]) == "AM773548.1 | dist = 8.18 | MatchPos = 6801:7189 | GenomePos = 444023"
     end
 
-    @testset "Nless_N_equivalence" begin
-        @test gma_Nless_API(genome=GF,
-        ref=tf,thr=16.0) == findGenes(genome=GF,ref=tf)
+    @testset "do_align = true, get_hit_loci = true" begin
+        res = FASTA.Record[]
+        hit_vec = Int[]
+        consts = init_InputConsts(genome_path = test_genome,
+            refVec = RV, consensus_refseq = cons_seq, windowsize = ws,
+            thr = 30, do_align = true,get_hit_loci = true)
 
-        @test gma_Nless_API(genome=GF, #this case is honestly pretty redundant
-        ref=tf,thr=20.0) != findGenes(genome=GF,ref=tf)
+        ac_gma_testing!(inp = consts, resultVec = res, hit_loci_vec = hit_vec)
+
+        @test length(res) == 7
+        @test hit_vec == [8543, 20175, 221912, 234016, 450875, 467930, 477868]
+        @test FASTA.description(res[2]) == "JQ684648.1 | dist = 30.0 | MatchPos = 20175:20574 | GenomePos = 0"
+        @test FASTA.description(res[end-2]) == "AM773548.1 | dist = 8.18 | MatchPos = 6852:7153 | GenomePos = 444023"
     end
+
+    @testset "do_return_dists = true, buff = 0, thr = 10, do_align = false" begin
+        res = FASTA.Record[]
+        dist_vec = Float64[]
+        consts = init_InputConsts(genome_path = test_genome,
+            refVec = RV, consensus_refseq = cons_seq, windowsize = ws,
+            thr = 10, do_align = false, do_return_dists = true)
+
+        ac_gma_testing!(inp = consts, resultVec = res, dist_vec = dist_vec)
+
+        @test length(dist_vec) == 484127
+        @test mean(dist_vec) == 46.290337910562926
+
+        @test length(res) == 3
+        @test getSeq(res[1]) == getSeq(res[2])
+        @test FASTA.description(res[3]) == "AM773548.1 | dist = 8.18 | MatchPos = 6801:7189 | GenomePos = 444023"
+    end
+end
+
+@testset "API.jl" begin
+    a = findGenes(genome_path = test_mini_genome, ref_path = tf)[1]
+    @test length(a) == 3
+    @test FASTA.description(a[1]) == "AM773548.1 | dist = 8.18 | MatchPos = 6852:7153 | GenomePos = 0"
+    @test FASTA.description(a[2]) == "AM773548.1 | dist = 24.91 | MatchPos = 23907:24249 | GenomePos = 0"
+    @test FASTA.description(a[3]) == "AM773548.1 | dist = 10.9 | MatchPos = 33845:34144 | GenomePos = 0"
+
+    # more comprehensive testing is needed of other params but my personal testing shows that it works nicely
 end
 
 @testset "ExactMatch.jl" begin
