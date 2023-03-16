@@ -15,7 +15,7 @@ using FASTX
         do_return_hit_loci::Bool = false,
         do_return_align::Bool = false)
 
-The main API to conduct homolohy searching in a genome, using a kmer-based sequence similarity metric, against a a reference sequence set. For example, the set of all germline V genes of a mammal.
+The main API to conduct homology searching in a genome, using a kmer-based sequence similarity metric, against a a reference sequence set. For example, the set of all germline V genes of a mammal.
 Returns the approximate matches as FASTA record vector WITHIN A VECTOR of length 1 in the default configuration of the parameters. The descriptions of the record contain information about the match. 
 The format of the description appears as so:
 
