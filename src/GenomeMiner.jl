@@ -25,6 +25,8 @@ function init_InputConsts(;
         score_model,do_return_dists,do_return_align,get_hit_loci))
 end
 
+export init_InputConsts
+
 # sooo... from benchmarktools it seems using the namedTuple actually worsened the performance...
 # additionally, lots of memory is consumed because the records become stored in memory
 
