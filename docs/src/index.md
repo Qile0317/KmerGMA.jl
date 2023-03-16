@@ -1,4 +1,4 @@
-# <img src="assets/logo.png" width="30%" align="right" /> KmerGMA
+# <img src="assets/logo.png" width="20%" align="right" /> KmerGMA
 [![Build Status](https://github.com/Qile0317/KmerGMA.jl/actions/workflows/CI.yml/badge.svg?branch=master)](https://github.com/Qile0317/KmerGMA.jl/actions/workflows/CI.yml?query=branch%3Amaster) [![Codecov test coverage](https://codecov.io/gh/Qile0317/KmerGMA.jl/branch/master/graph/badge.svg)](https://app.codecov.io/gh/Qile0317/KmerGMA.jl?branch=master) [![MIT license](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/Qile0317/KmerGMA.jl/LICENSE) [![Latest Release](https://img.shields.io/github/release/Qile0317/KmerGMA.jl.svg)](https://github.com/Qile0317/KmerGMA.jl/releases/latest) [![Documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://qile0317.github.io/KmerGMA.jl)
 
 *A k-mer based approach for homolgy searching*

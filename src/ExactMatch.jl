@@ -43,9 +43,7 @@ function FindAllOverlap(q::ExactSearchQuery{typeof(isequal), LongSequence{DNAAlp
 end
 
 """
-    exactMatch(query,
-               seq,
-               overlap::Bool = true)
+    exactMatch(query, seq, overlap::Bool = true)
 
 Finds all exact matches to a query sequence(dna longsequence) in the given genome assembly as a reader object(seq) or single sequence
 
