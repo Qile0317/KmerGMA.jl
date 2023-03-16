@@ -32,6 +32,11 @@ test_KFV = [0.0, 0.0, 0.0, 2.0, 1.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0
         @test kmer_dist(test_seq^25*dna"A"*test_seq^25, test_seq^25*dna"G"*test_seq^25, 2) == 1.0
         @test kmer_dist(test_seq^25*dna"AA"*test_seq^25, test_seq^25*dna"GT"*test_seq^25, 2) == 2.0
     end
+
+    @testset "kmer bit utils" begin
+        @test UInt(test_seq) == unsigned(14649)
+        @test kmer(unsigned(14649), 8) == test_seq
+    end
 end
 
 @testset "Consensus.jl" begin
@@ -200,5 +205,13 @@ end
             "AM939700|IGHV1S5*01|Vicugna" => [174:178])
         end
     end
-    #cflength like a few other functions isnt too relevant
+    
+    @testset "fasta_id_to_cumulative_len_dict" begin
+        @test fasta_id_to_cumulative_len_dict(test_genome) == Dict{String, Int64}(
+            "JQ684648.1 Lama glama clone V03 IgH locus genomic sequence" => 0,
+            "JQ684647.1 Lama glama clone F07 IgH locus genomic sequence" => 121478,
+            "AM773548.1 Lama pacos germline IgHV region, Vh3-S1, Vh2-S1 and vhh3-S1 genes" => 444023,
+            "AM773729.1 Lama pacos germline IgH locus: proximal IgHV region genes, complete IgHD region genes, complete IgHJ region genes and complete IgHC region genes" => 221227
+            )
+    end
 end

@@ -1,4 +1,4 @@
-# Finding exact match of a query in a genome (fasta file)
+# Finding exact matches of a query in a fasta_file
 The main function is simply based off of BioSequences' findfirst function.
 
 ```@docs

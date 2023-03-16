@@ -1,14 +1,3 @@
-##
-#reader = open(FASTA.Reader, "C:/Users/lu_41/Desktop/Sofo Prok/VicPac32.fna")
-#path = "C:/Users/lu_41/Desktop/Sofo Prok/VicPac32.fna"
-#firstr = first(reader)
-#f = FASTA.sequence(firstr)
-#q = dna"agtatcactaattatcagagaaatgcaaatcaaaactac"
-#query = ExactSearchQuery(q)
-#bseq = dna"CCCCCC"^10
-
-## I can also make it return a dictionary.
-#ig also its possible to make it write into a file
 """
     firstMatch(readerFASTX.FASTA.Reader, query::LongSequence{DNAAlphabet{4}})
 
@@ -115,34 +104,35 @@ export exactMatch
 #the algo is nothing fancy, it just uses BioSequences's exactmatch function. It'll be interesting comparing it to the GMA at SED = 0
 
 """
-    cflength(reader)
+    fasta_id_to_cumulative_len_dict(fasta_file_path::String)
 
-function to record and store cumulative lengths of the BEGINNING of each record in a dictionary
-for example: for the reader
+function to record and store cumulative lengths of the BEGINNING of each record in a dictionary, from a fasta file.
+for example: for the following fasta file
 
     >firstseq
     ATGC
     >secondseq
     AT
 
-the dictionary returned would be:
+The dictionary returned would be:
 
     "firstseq"  => 4
     "secondseq" => 6
 
 Not nessecarily in that order.
 """
-function cflength(reader::FASTX.FASTA.Reader{})
+function fasta_id_to_cumulative_len_dict(fasta_file_path::String)
     lengthmap = Dict{String,Int64}()
-    clength = 0
-    prev = 0
-    for record in reader
-        identifier = FASTA.identifier(record)
-        clength += prev
-        prev = FASTX.FASTA.seqsize(record)
-        lengthmap[identifier] = clength
+    clength, prev = 0, 0
+    open(FASTX.FASTA.Reader, fasta_file_path) do reader
+        for record in reader
+            identifier = FASTA.description(record)
+            clength += prev
+            prev = FASTX.FASTA.seqsize(record)
+            lengthmap[identifier] = clength
+        end
     end
     return lengthmap
 end
 
-export cflength
+export fasta_id_to_cumulative_len_dict

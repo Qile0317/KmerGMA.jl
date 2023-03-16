@@ -14,9 +14,8 @@ end
 
 export estimate_optimal_threshold
 
-# to have a better buffer, the variance should be determined and take the lower bound - some additinoal val.
-# will put in the mutation plotting stuff here
-
+# to have a better buffer, the variance should be determined and take the lower bound - some additional val.
+# unfinished 
 function mutation_plot(RV::Kfv; seed::Int64 = 42, num_trials::Int64 = 50)
     println("placeholder")
 end

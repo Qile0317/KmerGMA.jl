@@ -118,8 +118,7 @@ function ac_gma_testing!(; inp::InputConsts,
                             FASTA.identifier(record)*
                                 " | dist = "*string(round(currminim, digits = 2))*
                                 " | MatchPos = $seq_UnitRange"*
-                                " | GenomePos = $genome_pos",#*
-                                #" | CIGAR = "*cig_str,
+                                " | GenomePos = $genome_pos",
                             view(seq, seq_UnitRange)
                         )
 
