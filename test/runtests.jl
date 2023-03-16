@@ -34,8 +34,8 @@ test_KFV = [0.0, 0.0, 0.0, 2.0, 1.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0
     end
 
     @testset "kmer bit utils" begin
-        @test UInt(test_seq) == unsigned(14649)
-        @test kmer(unsigned(14649), 8) == test_seq
+        @test as_UInt(test_seq) == unsigned(14649)
+        @test as_kmer(unsigned(14649), 8) == test_seq
     end
 end
 
