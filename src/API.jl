@@ -35,7 +35,7 @@ Where `Identifier` is the contig ID of the genome where the current hit was foun
 - `KmerDistThr::Int64 = 0`: the Kmer Distance distance threshold for sequence matches to the query reference sequence set. Out of the context of the algorithm, lower values mean matches have to be more similar to the references. If left as 0, it is automatically computed. Once again the pre-print has information on this argument.
 - `buffer::Int64 = 50`: the amount of nucleotides left and right of a matched sequence that should be added to the returned fasta sequences, as KmerGMA is a heuristic
 - `do_align`: Whether to align the hits+bufer region to the consensus sequence of the references. Highly recommended to keep as `true`
-- `do_return_dists`: dangerous boolean to indicate whether the kmer distances along every window alon ghte genome should be returned in a vector
+- `do_return_dists`: boolean to indicate whether the kmer distances along every window along the genome should be returned in a vector. (intensive memory consumption when genomes are large)
 - `do_return_hit_loci`: if `true`, will return an additional vector of the position within the genomic sequences of each hit, corresponding to the index in the hit vector.
 - `do_return_align`: if `true`, will return an additional vector of alignment object of each hit to the consensus reference sequence.
 ...
