@@ -65,7 +65,7 @@ export get_cluster_index
         reference_seqs::String,
         k::Int;
         maxlen::Int = 0,
-        cutoffs::Vector = [16,20,30],
+        cutoffs::Vector = [7,12,20,25],
         get_dists::Bool = false,
         average_KFV::Vector{Float64} = Float64[],
         Nt_bits::DnaBits = NUCLEOTIDE_BITS)
@@ -76,7 +76,7 @@ makes the new KFVs for each cluster, gets the new windowsizes,
 """
 function cluster_ref_API(reference_seqs::String, k::Int;
     maxlen::Int = 0,
-    cutoffs::Vector = [16,20,30],
+    cutoffs::Vector = [7,12,20,25],
     get_dists::Bool = false,
     average_KFV::Vector{Float64} = Float64[],
     include_avg::Bool = true, # include the overall
@@ -87,10 +87,12 @@ function cluster_ref_API(reference_seqs::String, k::Int;
     end
 
     num_cutoffs = length(cutoffs) + 1
-    invalid_vec = [false for _ in 1:num_cutoffs]
+
+    invalid_vec = [false for _ in 1:num_cutoffs] # false means it IS valid
     lens = [0 for _ in 1:num_cutoffs]
+
     KFVs, windowsizes = [zeros(4^k) for _ in 1:num_cutoffs], zeros(Int, num_cutoffs)
-    consensus_dat_vec = [Profile(maxlen) for _ in 1:num_cutoffs]
+    consensus_dat_vec::Vector{Any} = Any[Profile(maxlen) for _ in 1:num_cutoffs]
     if get_dists; dists = [] end
 
     # iterate through records again to get the distance of the reference to the avgKFV
@@ -119,6 +121,13 @@ function cluster_ref_API(reference_seqs::String, k::Int;
         end
     end
 
+    if include_avg 
+        push!(invalid_vec, false)
+        push!(KFVs, average_KFV)
+        push!(windowsizes, average_len)
+        push!(consensus_vec, average_cons)
+    end
+
     if get_dists
         return KFVs, windowsizes, consensus_vec, invalid_vec, dists 
     end
@@ -126,3 +135,5 @@ function cluster_ref_API(reference_seqs::String, k::Int;
 end
 
 export cluster_ref_API
+
+function eliminate_null_params()

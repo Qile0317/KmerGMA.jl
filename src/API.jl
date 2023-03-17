@@ -1,7 +1,5 @@
 using FASTX
 
-# version without clustering
-
 """
     KmerGMA.findGenes(;
         genome_path::String,
@@ -13,7 +11,8 @@ using FASTX
         do_align::Bool = true,
         do_return_dists::Bool = false,
         do_return_hit_loci::Bool = false,
-        do_return_align::Bool = false)
+        do_return_align::Bool = false
+        verbose::Bool = true)
 
 The main API to conduct homology searching in a genome, using a kmer-based sequence similarity metric, against a a reference sequence set. For example, the set of all germline V genes of a mammal.
 Returns the approximate matches as FASTA record vector WITHIN A VECTOR of length 1 in the default configuration of the parameters. The descriptions of the record contain information about the match. 
@@ -38,6 +37,7 @@ Where `Identifier` is the contig ID of the genome where the current hit was foun
 - `do_return_dists`: boolean to indicate whether the kmer distances along every window along the genome should be returned in a vector. (intensive memory consumption when genomes are large)
 - `do_return_hit_loci`: if `true`, will return an additional vector of the position within the genomic sequences of each hit, corresponding to the index in the hit vector.
 - `do_return_align`: if `true`, will return an additional vector of alignment object of each hit to the consensus reference sequence.
+- `verbose::Bool = true` Indicates whether to shown info in the REPL about the the progress of the processing
 ...
 
 The last three arguments would add term to the output. The output vector would incorporate the respective vectors in the same order of priority if any of the parameters are true.
@@ -46,12 +46,15 @@ Note: Playing with the `KmerDistThr` argument could return more or less matches 
 """
 function findGenes(; genome_path::String, ref_path::String, do_cluster::Bool = false, # to be implemented
     k::Int = 6, KmerDistThr::Union{Int64, Float64} = 0, buffer::Int64 = 50, do_align::Bool = true,
-    do_return_dists::Bool = false, do_return_hit_loci::Bool = false, do_return_align::Bool = false)
+    do_return_dists::Bool = false, do_return_hit_loci::Bool = false, do_return_align::Bool = false,
+    verbose::Bool = true)
 
+    if verbose; @info "pre-processing references and parameters..." end 
     if k < 5; @warn "Such a low k value of $k likely won't yield the most accurate results" end
     if do_return_dists; @warn "Setting do_return_dists to true may be very memory intensive" end 
 
     RV, windowsize, consensus_refseq = gen_ref_ws_cons(ref_path, k)
+    if k >= windowsize; stop("the average reference sequence length $windowsize exceeds/is equal to the chosen kmer length $k. please reduce k. ") end
 
     estimated_optimal_KmerDistThr = estimate_optimal_threshold(RV, windowsize)
     if KmerDistThr == 0
@@ -71,17 +74,20 @@ function findGenes(; genome_path::String, ref_path::String, do_cluster::Bool = f
     dist_vec, hit_loci_vec, alignment_vec = Float64[], Int[], []  
     curr_KFV, cumulative_length_in_genome = zeros(4^k), 0
 
+    if verbose; @info "initializing iteration..." end 
     ac_gma_testing!(inp = KmerGMA_constant_parameters,
         curr_kmer_freq = curr_KFV, dist_vec = dist_vec,
         result_align_vec = alignment_vec,
         hit_loci_vec = hit_loci_vec, genome_pos = cumulative_length_in_genome,
         resultVec = hit_vector)
 
-    # return results
+    info_str = "genome mining completed successfully, returning vector of: vector of hits"
     output_vector = Any[hit_vector]
-    if do_return_hit_loci; push!(output_vector, hit_loci_vec) end
-    if do_return_align; push!(output_vector, alignment_vec) end 
-    if do_return_dists; push!(output_vector, dist_vec) end
+    if do_return_hit_loci; push!(output_vector, hit_loci_vec); info_str *= ", vector of hit locations" end
+    if do_return_align; push!(output_vector, alignment_vec); info_str *= ", vector of alignments" end 
+    if do_return_dists; push!(output_vector, dist_vec) ; info_str *= ", vector of kmer distances along the genome"end
+    
+    if verbose; @info info_str end
     return output_vector
 end
 
@@ -103,3 +109,48 @@ function write_results(KmerGMA_result_vec::Vector{FASTX.FASTA.Record}, file_path
 end
 
 export write_results
+
+# unfinished and undocumented APi for the alternative Omn version of KmerGMA
+function findGenes_cluster_mode(; genome_path::String, ref_path::String, cluster_cutoffs = [7,12,20,25]
+    k::Int = 6, KmerDistThrs::Union{Int64, Float64} = 0, buff::Int64 = 50, do_align::Bool = true,
+    do_return_dists::Bool = false, do_return_hit_loci::Bool = false, do_return_align::Bool = false,
+    verbose::Bool = true)
+
+    if verbose; @info "pre-processing references and parameters..." end 
+    if k < 5; @warn "Such a low k value of $k likely won't yield the most accurate results" end
+    if do_return_dists; @warn "Setting do_return_dists to true may be very memory intensive" end 
+
+    RVs, windowsizes, consensus_refseqs, invalids = cluster_ref_API(ref_path, k; cutoffs = cluster_cutoffs)
+    if k >= max(windowsizes); stop("the average reference sequence length $windowsize exceeds/is equal to the chosen kmer length $k. please reduce k. ") end
+
+    #estimated_optimal_KmerDistThrs = estimate_optimal_threshold(RVs, windowsizes)
+    #if KmerDistThr[1] == 0 # user indicates they want it to be automated
+    #    KmerDistThrs = estimated_optimal_KmerDistThrs
+    #elseif KmerDistThr[1] < estimated_optimal_KmerDistThr
+    #    @warn "The kmer distance threshold $KmerDistThr for k = $k is likely too high, and can result in many false positives"
+    #end
+    
+    hit_vector = FASTX.FASTA.Record[]
+    dist_vec, hit_loci_vec, alignment_vec = Float64[], Int[], []  
+
+    if verbose; @info "initializing iteration..." end 
+    Omn_KmerGMA!(genome_path = genome_path, refVecs = RVs,
+        windowsizes = windowsizes, consensus_seqs = consensus_refseqs,
+        resultVec = hit_vector, k = k,
+        ScaleFactor = (1/2k), mask=unsigned(4^k -1),
+        thr_vec = estimate_optimal_threshold(RVs, windowsizes),
+        buff = buff, align_hits=align_hits, get_hit_loci = do_return_hit_loci, 
+        hit_loci_vec = hit+loci_vec,
+        get_aligns = do_return_align, align_vec = alignment_vec)
+
+    info_str = "genome mining completed successfully, returning vector of: vector of hits"
+    output_vector = Any[hit_vector]
+    if do_return_hit_loci; push!(output_vector, hit_loci_vec); info_str *= ", vector of hit locations" end
+    if do_return_align; push!(output_vector, alignment_vec); info_str *= ", vector of alignments" end 
+    if do_return_dists; push!(output_vector, dist_vec) ; info_str *= ", vector of kmer distances along the genome"end
+    
+    if verbose; @info info_str end
+    return output_vector
+end
+
+export findGenes_cluter_mode

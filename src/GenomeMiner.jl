@@ -1,5 +1,7 @@
 using BioSequences, FASTX, Distances, BioAlignments
 
+# this shouldn't be that hard to multithread/parallelize
+
 const InputConsts = NamedTuple{(:genome_path, :refVec, :consensus_refseq, :k, :windowsize, :thr, :buff, :mask, :Nt_bits, :ScaleFactor, :do_align, :score_model, :do_return_dists, :do_return_align, :get_hit_loci),
     Tuple{String, Vector{Float64}, LongSequence{DNAAlphabet{4}}, Int64, Int64, Float64, Int64, UInt64, Dict{DNA, UInt64}, Float64, Bool, AffineGapScoreModel{Int64}, Bool, Bool, Bool}}
 

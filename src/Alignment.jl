@@ -1,5 +1,9 @@
 using BioAlignments
 
+const AlignResult = PairwiseAlignmentResult{Int64, LongSequence{DNAAlphabet{4}}, LongSequence{DNAAlphabet{4}}}
+const SubAlignResult = PairwiseAlignmentResult{Int64,LongSequence{DNAAlphabet{4}},LongSubSeq{DNAAlphabet{4}}}
+const AlignObj = Union{AlignResult, SubAlignResult}
+
 const char_ints = Set(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'])
 
 function cigar_to_UnitRange(aligned_obj)

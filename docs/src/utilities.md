@@ -11,3 +11,9 @@ KmerGMA.kmer_count
 KmerGMA.as_kmer
 KmerGMA.as_UInt
 ```
+
+## paired kmer utilities
+The following functions count all kmer pairs within a sequence, which is a feature to be further utilized in an upcoming release. Counting paired kmers could serve as a more robust alternative to regular kmers in many applications.
+```@docs
+KmerGMA.kmer_pair_count
+```

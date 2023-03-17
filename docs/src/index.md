@@ -31,6 +31,8 @@ Where `genome_path` is the file location of a fasta file containing sequences to
 
 The function defaults to returning a vector of fasta records. The findGenes function has many optional paramaters to optimize/adjust its performance. See the documentation for more details.
 
+Note that an O(mn) approach was also been implemented in `src/OmnGenomeMiner.jl` but the user API and docs have not been written yet.
+
 ## Performance
 The current version of the homology searching `findGenes` function can iterate on average 40 megabases per second. So it would take about 80 seconds for the human genome.
 

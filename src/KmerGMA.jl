@@ -10,7 +10,3 @@ module KmerGMA
     include("API.jl")
     include("ExactMatch.jl")
 end
-
-# immediate upcoming features for 0.5.0 or potentially 1.0.0:
-# - improved threshold estimation via monte carlo testing. (package is currently optimized for k = 6)
-# - Optional clustering of references, and the O(mn) KmerGMA

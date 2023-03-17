@@ -11,10 +11,10 @@ To see what kmer each index corresponds to, see the function `as_kmer`
 """
 function kmer_count(str::DnaSeq, k::Int, Nt_bits::DnaBits = NUCLEOTIDE_BITS)
     bins, mask, kmer = zeros(4^k), unsigned((4^k)-1), unsigned(0)
-    for c in str[1:k-1]
+    for c in view(str, 1:k-1)
         kmer = (kmer << 2) + Nt_bits[c]
     end
-    for c in str[k:end]
+    for c in view(str, k:length(str))
         kmer = ((kmer << 2) & mask) + Nt_bits[c]
         bins[kmer + 1] += 1
     end
@@ -29,10 +29,10 @@ function kmer_count!(; str::DnaSeq, k::Int,
     Nt_bits::DnaBits = NUCLEOTIDE_BITS)
 
     kmer = unsigned(0)
-    for c in str[1:k-1]
+    for c in view(str, 1:k-1)
         kmer = (kmer << 2) + Nt_bits[c]
     end
-    for c in str[k:end]
+    for c in view(str, k:length(str))
         kmer = ((kmer << 2) & mask) + Nt_bits[c]
         bins[kmer + 1] += 1
     end
