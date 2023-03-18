@@ -1,7 +1,9 @@
 using BioSequences, FASTX
 
-const SubSeq = LongSubSeq{DNAAlphabet{4}}
-const Seq = LongSequence{DNAAlphabet{4}}
+export SubSeq, Seq, DnaSeq, DnaBits, Kfv
+
+const SubSeq = BioSequences.LongSubSeq{DNAAlphabet{4}}
+const Seq = BioSequences.LongSequence{DNAAlphabet{4}}
 const DnaSeq = Union{Seq, SubSeq}
 const DnaBits = Dict{BioSequences.DNA, UInt}
 const Kfv = Union{Vector{Int64}, Vector{Float64}}
@@ -17,18 +19,15 @@ const NUCLEOTIDE_BITS = Dict{BioSequences.DNA, UInt}(
 export NUCLEOTIDE_BITS
 
 """
-    getSeq(seq::FASTA.Record)
+    getSeq(sequence::FASTA.Record)
 
 Alias to get the dna longsequence of a fasta record
 """
-function getSeq(seq::FASTX.FASTA.Record)
-     return FASTX.FASTA.sequence(BioSequences.LongSequence{DNAAlphabet{4}}, seq)
+function getSeq(sequence::FASTX.FASTA.Record)
+     return FASTX.FASTA.sequence(Seq, sequence)
 end
 
 export getSeq
 
-function getK(KFV::Kfv)
-    return Int(log(4, length(KFV)))
-end
-
+getK(KFV::Kfv) = Int(log(4, length(KFV)))
 export getK
