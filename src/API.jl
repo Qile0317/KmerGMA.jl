@@ -33,11 +33,11 @@ Where `Identifier` is the contig ID of the genome where the current hit was foun
 - `k::Int64 = 6`: the kmer length to use for approximate matching. Generally it should probably remain between 5 - 10 and probably does not have a profound impact on how the matches are found. Check out the pre-print for more information
 - `KmerDistThr::Int64 = 0`: the Kmer Distance distance threshold for sequence matches to the query reference sequence set. Out of the context of the algorithm, lower values mean matches have to be more similar to the references. If left as 0, it is automatically computed. Once again the pre-print has information on this argument.
 - `buffer::Int64 = 50`: the amount of nucleotides left and right of a matched sequence that should be added to the returned fasta sequences, as KmerGMA is a heuristic
+- `verbose::Bool = true` Indicates whether to show info in the REPL about the the progress of the processing
 - `do_align`: Whether to align the hits+bufer region to the consensus sequence of the references. Highly recommended to keep as `true`
 - `do_return_dists`: boolean to indicate whether the kmer distances along every window along the genome should be returned in a vector. (intensive memory consumption when genomes are large)
 - `do_return_hit_loci`: if `true`, will return an additional vector of the position within the genomic sequences of each hit, corresponding to the index in the hit vector.
 - `do_return_align`: if `true`, will return an additional vector of alignment object of each hit to the consensus reference sequence.
-- `verbose::Bool = true` Indicates whether to shown info in the REPL about the the progress of the processing
 ...
 
 The last three arguments would add term to the output. The output vector would incorporate the respective vectors in the same order of priority if any of the parameters are true.
@@ -112,7 +112,7 @@ export write_results
 
 # unfinished and undocumented APi for the alternative Omn version of KmerGMA
 function findGenes_cluster_mode(; genome_path::String, ref_path::String, cluster_cutoffs = [7,12,20,25]
-    k::Int = 6, KmerDistThrs::Union{Int64, Float64} = 0, buff::Int64 = 50, do_align::Bool = true,
+    k::Int = 6, KmerDistThrs = Float64[35,31,38,34,27,27], buff::Int64 = 50, do_align::Bool = true,
     do_return_dists::Bool = false, do_return_hit_loci::Bool = false, do_return_align::Bool = false,
     verbose::Bool = true)
 
@@ -140,7 +140,7 @@ function findGenes_cluster_mode(; genome_path::String, ref_path::String, cluster
         ScaleFactor = (1/2k), mask=unsigned(4^k -1),
         thr_vec = estimate_optimal_threshold(RVs, windowsizes),
         buff = buff, align_hits=align_hits, get_hit_loci = do_return_hit_loci, 
-        hit_loci_vec = hit+loci_vec,
+        hit_loci_vec = hit_loci_vec,
         get_aligns = do_return_align, align_vec = alignment_vec)
 
     info_str = "genome mining completed successfully, returning vector of: vector of hits"
@@ -149,7 +149,7 @@ function findGenes_cluster_mode(; genome_path::String, ref_path::String, cluster
     if do_return_align; push!(output_vector, alignment_vec); info_str *= ", vector of alignments" end 
     if do_return_dists; push!(output_vector, dist_vec) ; info_str *= ", vector of kmer distances along the genome"end
     
-    if verbose; @info info_str end
+    if verbose; @info info_str; @info "To write the results, use `KmerGMA.write_results`" end
     return output_vector
 end
 

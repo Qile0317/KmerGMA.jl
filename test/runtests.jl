@@ -81,6 +81,7 @@ end
 
         @test gen_ref_ws_cons(record_vec, 1) ==  ([63.25, 73.70238095238095, 89.26190476190476, 62.38095238095238], 289, test_consensus_seq)
         @test gen_ref_ws_cons(record_vec, 1; get_maxlen = true) == ([63.25, 73.70238095238095, 89.26190476190476, 62.38095238095238], 289, test_consensus_seq, 299)
+        record_vec = nothing
     end
 
     @testset "cluster_ref_API" begin
@@ -88,12 +89,37 @@ end
         @test get_cluster_index(12, [1,2,6,10]) == 5
         @test get_cluster_index(0, [1,2,6,10]) == 1
         
-        a = cluster_ref_API(tf, 1)
-        @test a[1] == [[62.935483870967744, 71.90322580645162, 90.19354838709677, 62.774193548387096], [63.666666666666664, 70.83333333333333, 90.83333333333333, 63.916666666666664], [63.0, 69.07692307692308, 90.46153846153847, 64.76923076923077], [63.535714285714285, 79.07142857142857, 87.0, 60.17857142857143]]
-        @test a[2] == [288,289,287,290]
-        @tese length(a[3]) == 4
-        @test a[3][1][1:4] == dna"CAGG" # doesen't test all sequences lol but they should be fine if all prev tests passed
-        @test a[4] == [false,false,false,false]
+        @testset "include_avg = false" begin
+            a = cluster_ref_API(tf, 1, cutoffs = [7,12,20,25], include_avg = false)
+            @test a[1] == [[62.785714285714285, 72.78571428571429, 89.78571428571429, 62.642857142857146], [63.13333333333333, 71.33333333333333, 90.53333333333333, 62.6], [63.5, 70.71428571428571, 90.78571428571429, 64.07142857142857], [62.54545454545455, 68.72727272727273, 91.36363636363636, 64.54545454545455], [63.666666666666664, 78.53333333333333, 86.9, 60.56666666666667]]
+            @test a[2] == [288,288,289,287,290]
+            @test length(a[3]) == 5
+            @test a[3][1][1:4] == dna"CAGG" # doesen't test all sequences lol but they should be fine if all prev tests passed
+            @test a[4] == [false,false,false,false,false]
+            a = nothing # save mem
+        end
+
+        @testset "include_avg = true (default)" begin
+            a = cluster_ref_API(tf, 1, cutoffs = [7,12,20,25])
+            @test a[1] == [[62.785714285714285, 72.78571428571429, 89.78571428571429, 62.642857142857146], [63.13333333333333, 71.33333333333333, 90.53333333333333, 62.6], [63.5, 70.71428571428571, 90.78571428571429, 64.07142857142857], [62.54545454545455, 68.72727272727273, 91.36363636363636, 64.54545454545455], [63.666666666666664, 78.53333333333333, 86.9, 60.56666666666667], [63.25, 73.70238095238095, 89.26190476190476, 62.38095238095238]]
+            @test a[2] == [288, 288, 289, 287, 290, 289]
+            @test length(a[3]) == 6
+            @test a[3][1][1:4] == dna"CAGG" # doesen't test all sequences lol but they should be fine if all prev tests passed
+            @test a[4] == [false,false,false,false,false, false]
+            a = nothing # save mem
+        end
+    end
+
+    @testset "eliminate_null_params" begin
+        test_KFVs = Vector{Float64}[test_KFV,test_KFV]
+        test_ws, test_cons_vec = Int[8,8], Seq[test_seq, test_seq]
+        inv_vec = [true,false]
+
+        test_KFVs, test_ws, test_cons_vec = eliminate_null_params(test_KFVs, test_ws, test_cons_vec, inv_vec)
+
+        @test test_KFVs == [test_KFV]
+        @test test_ws == [8]
+        @test test_cons_vec == [test_seq]
     end
 end
 

@@ -136,4 +136,32 @@ end
 
 export cluster_ref_API
 
-function eliminate_null_params()
+"""
+    eliminate_null_params(
+        KFVs::Vector{Vector{Float64}},
+        windowsizes::Vector{Int64},
+        consensus_vec::Vector{Seq},
+        invalid_vec::Vector{Bool})
+
+For devs: Simple function to take the output of `cluster_ref_API` and RETURN COPIES of the three first vectors,
+where the terms that are "empty" according to the `invalid_vec` boolean at each index.
+"""
+function eliminate_null_params(
+    KFVs::Vector{Vector{Float64}}, windowsizes::Vector{Int64},
+    consensus_vec::Vector{Seq}, invalid_vec::Vector{Bool})
+
+    invalid_inds = []
+    for (i, invalid) in enumerate(invalid_vec)
+        if invalid; push!(invalid_inds, i) end
+    end
+    new_KFVs, new_windowsizes = Vector{Float64}[], Int[]
+    new_consensus_vec = Seq[]
+    for ind in invalid_inds
+        push!(new_KFVs, KFVs[ind])
+        push!(new_windowsizes, windowsizes[ind])
+        push!(new_consensus_vec, consensus_vec[ind])
+    end
+    return new_KFVs, new_windowsizes, new_consensus_vec
+end
+
+export eliminate_null_params
