@@ -7,6 +7,11 @@ module KmerGMA
     include("ReferenceGeneration.jl")
     include("Alignment.jl")
     include("GenomeMiner.jl")
+    include("OmnGenomeMiner.jl")
     include("API.jl")
     include("ExactMatch.jl")
+
+    # work in progress 
+    include("RSS.jl")
+    include("PairedKmers.jl")
 end

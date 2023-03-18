@@ -9,7 +9,7 @@ function Omn_KmerGMA!(;
     k::Int64 = 6,
     ScaleFactor::Real = 0.0833333333333333333333333333333,
     mask::UInt64 = unsigned(4095), 
-    thr_vec::Vector{Float64} = Float64[35,31,38,34,27,27], 
+    thr_vec::Kfv = Float64[35,31,38,34,27,27], 
     buff::Int64 = 50, # if higher should increase accuracy
     Nt_bits::Dict{DNA, UInt64} = NUCLEOTIDE_BITS,
     score_model::AffineGapScoreModel{Int64} = AffineGapScoreModel(EDNAFULL, gap_open=-69, gap_extend=-1),
@@ -132,7 +132,8 @@ function Omn_KmerGMA!(;
                             ))
 
                             # important to mostly avoid duplicates - in rare cases it may produce duplicates still.
-                            prev_hit_range = min(first(seq_UnitRange), first(prev_hit_range)):max(last(seq_UnitRange), last(prev_hit_range))
+                            prev_hit_range = seq_UnitRange
+                            #prev_hit_range = min(first(seq_UnitRange), first(prev_hit_range)):max(last(seq_UnitRange), last(prev_hit_range))
                         end
                     end
                 end
@@ -144,7 +145,7 @@ end
 
 export Omn_KmerGMA!
 
-#write_results(test_res, "new_testing.fasta") # took 6*50 = 300 seconds as expected
+#write_results(test_res, "new_testing.fasta") # took 6*50 = 300 seconds as expected, for 6 subsets, which is exactly 6 times longer than the O(n) version
 
 # known edgecases not handled: 
 # - the first window is a hit/close match

@@ -15,7 +15,7 @@ function estimate_optimal_threshold(RV::Kfv, average_length::Int64;
 end
 
 function estimate_optimal_threshold(RV_vec::Vector{Vector{Float64}}, average_length_vec::Vector{Int64};
-    seed::Int64 = 42, num_trials::Int64 = 100, buffer::Real = 10)
+    seed::Int64 = 42, num_trials::Int64 = 100, buffer::Real = 8)
 
     Random.seed!(seed); k = Int(log(4, length(first(RV_vec))))
     thresholds = Float64[]
@@ -35,5 +35,6 @@ end
 
 # unfinished - use to visualize
 function mutation_plot(RV::Kfv; seed::Int64 = 42, num_trials::Int64 = 50)
+    
     println("placeholder")
 end

@@ -136,6 +136,7 @@ end
 
 export cluster_ref_API
 
+not(inp::Bool) = !inp
 """
     eliminate_null_params(
         KFVs::Vector{Vector{Float64}},
@@ -152,7 +153,7 @@ function eliminate_null_params(
 
     invalid_inds = []
     for (i, invalid) in enumerate(invalid_vec)
-        if invalid; push!(invalid_inds, i) end
+        if not(invalid); push!(invalid_inds, i) end
     end
     new_KFVs, new_windowsizes = Vector{Float64}[], Int[]
     new_consensus_vec = Seq[]

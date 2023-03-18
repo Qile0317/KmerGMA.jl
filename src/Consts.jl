@@ -26,3 +26,9 @@ function getSeq(seq::FASTX.FASTA.Record)
 end
 
 export getSeq
+
+function getK(KFV::Kfv)
+    return Int(log(4, length(KFV)))
+end
+
+export getK

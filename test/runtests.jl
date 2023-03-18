@@ -111,15 +111,20 @@ end
     end
 
     @testset "eliminate_null_params" begin
-        test_KFVs = Vector{Float64}[test_KFV,test_KFV]
-        test_ws, test_cons_vec = Int[8,8], Seq[test_seq, test_seq]
-        inv_vec = [true,false]
+        test_KFVs = Vector{Float64}[test_KFV,test_KFV.+0.3]
+        test_ws, test_cons_vec = Int[8,9], Seq[test_seq, test_seq*dna"Y"]
+        inv_vec = [false,true]
 
         test_KFVs, test_ws, test_cons_vec = eliminate_null_params(test_KFVs, test_ws, test_cons_vec, inv_vec)
 
         @test test_KFVs == [test_KFV]
         @test test_ws == [8]
         @test test_cons_vec == [test_seq]
+
+        RVs, windowsizes, consensus_refseqs, invalids = cluster_ref_API(tf, 6; cutoffs = [7,12,20,25])
+        RVs, windowsizes, consensus_refseqs = eliminate_null_params(RVs, windowsizes, consensus_refseqs, invalids)
+        @test windowsizes == [288,288,288,289,290,289]
+        @test length(RVs) == length(consensus_refseqs) == 6
     end
 end
 
@@ -207,7 +212,8 @@ end
         rvs,ws,cons,inv = cluster_ref_API(tf, 6; cutoffs = [7,12,20,25])
         test_res = FASTA.Record[]
 
-        Omn_KmerGMA!(genome_path = test_genome, refVecs = rvs, windowsizes = ws, consensus_seqs = cons, resultVec = test_res, buff = 200)
+        Omn_KmerGMA!(genome_path = test_genome, refVecs = rvs, windowsizes = ws, consensus_seqs = cons, resultVec = test_res,
+            buff = 200, thr_vec = [37,33,38,34,28,27])
         @test length(test_res) == 8
         @test FASTA.description(test_res[6]) == "AM773548.1 | Dist = 34.12 | KFV = 4 | MatchPos = 23907:24179 | GenomePos = 444023 | Len = 272"
         @test FASTA.description(test_res[7]) == "AM773548.1 | Dist = 27.02 | KFV = 6 | MatchPos = 23907:24211 | GenomePos = 444023 | Len = 304"
