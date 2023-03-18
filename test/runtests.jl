@@ -130,12 +130,10 @@ end
 
 @testset "DistanceTesting.jl" begin
     RV, ws, cons_seq = gen_ref_ws_cons(tf, 6)
-    @test Int(round(estimate_optimal_threshold(RV,299))) == 31
+    @test Int(round(estimate_optimal_threshold(RV,299; buffer = 12))) == 27
     
-    rvs,ws,cons,inv = cluster_ref_API("test/Alp_V_ref.fasta", 6; cutoffs = [7,12,20,25])
-    @test estimate_optimal_threshold(rvs,ws) == [
-        35.85127551020407, 31.367253451676525, 38.69833333333333,
-        34.602333333333355, 27.228101851851818, 27.63553571428571]
+    rvs,ws,cons,inv = cluster_ref_API(tf, 6; cutoffs = [7,12,20,25], include_avg = false)
+    @test estimate_optimal_threshold(rvs,ws; buffer = 8) == [37.85127551020407, 33.367253451676525, 40.69833333333333, 36.602333333333355, 29.228101851851818]
 end
 
 @testset "Alignment.jl" begin
@@ -209,15 +207,18 @@ end
 
 @testset "OmnGenomeMiner.jl" begin #unfinished
     @testset "buff = 200" begin
-        rvs,ws,cons,inv = cluster_ref_API(tf, 6; cutoffs = [7,12,20,25])
+        rvs,ws,cons,inv = cluster_ref_API(tf, 6; cutoffs = [7,12,20,25], include_avg = false)
         test_res = FASTA.Record[]
 
-        Omn_KmerGMA!(genome_path = test_genome, refVecs = rvs, windowsizes = ws, consensus_seqs = cons, resultVec = test_res,
-            buff = 200, thr_vec = [37,33,38,34,28,27])
-        @test length(test_res) == 8
-        @test FASTA.description(test_res[6]) == "AM773548.1 | Dist = 34.12 | KFV = 4 | MatchPos = 23907:24179 | GenomePos = 444023 | Len = 272"
-        @test FASTA.description(test_res[7]) == "AM773548.1 | Dist = 27.02 | KFV = 6 | MatchPos = 23907:24211 | GenomePos = 444023 | Len = 304"
-        @test FASTA.description(test_res[8]) == "AM773548.1 | Dist = 38.0 | KFV = 3 | MatchPos = 33845:34132 | GenomePos = 444023 | Len = 287"
+        # thresholds are purposefully lower
+        Omn_KmerGMA!(genome_path = test_mini_genome, refVecs = rvs, windowsizes = ws, consensus_seqs = cons, resultVec = test_res,
+                    buff = 200, thr_vec = [37,33,38,34,28,27])
+        @test length(test_res) == 5
+        @test FASTA.description(test_res[5]) == "AM773548.1 | Dist = 33.1 | KFV = 2 | MatchPos = 33845:34132 | GenomePos = 0 | Len = 287"
+        @test FASTA.description(test_res[4]) == "AM773548.1 | Dist = 37.11 | KFV = 1 | MatchPos = 33845:34132 | GenomePos = 0 | Len = 287"
+        @test FASTA.description(test_res[3]) == "AM773548.1 | Dist = 38.0 | KFV = 3 | MatchPos = 33845:34132 | GenomePos = 0 | Len = 287"
+        @test FASTA.description(test_res[2]) == "AM773548.1 | Dist = 34.12 | KFV = 4 | MatchPos = 23907:24179 | GenomePos = 0 | Len = 272"
+        @test FASTA.description(test_res[1]) == "AM773548.1 | Dist = 38.0 | KFV = 3 | MatchPos = 6852:7139 | GenomePos = 0 | Len = 287"
     end
 end
 
@@ -229,6 +230,7 @@ end
     @test FASTA.description(a[3]) == "AM773548.1 | dist = 10.9 | MatchPos = 33845:34144 | GenomePos = 0"
 
     # more comprehensive testing is needed of other params but my personal testing shows that it works nicely
+    # need to test findGenes_cluster_mode
 end
 
 @testset "ExactMatch.jl" begin

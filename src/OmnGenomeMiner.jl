@@ -133,7 +133,7 @@ function Omn_KmerGMA!(;
 
                             # important to mostly avoid duplicates - in rare cases it may produce duplicates still.
                             prev_hit_range = seq_UnitRange
-                            #prev_hit_range = min(first(seq_UnitRange), first(prev_hit_range)):max(last(seq_UnitRange), last(prev_hit_range))
+                            # prev_hit_range = min(first(seq_UnitRange), first(prev_hit_range)):max(last(seq_UnitRange), last(prev_hit_range))
                         end
                     end
                 end
@@ -149,3 +149,4 @@ export Omn_KmerGMA!
 
 # known edgecases not handled: 
 # - the first window is a hit/close match
+# - multiple hits under threshold - easy fix is to have new bound and reset minima finder, but might produce mroe false pos
