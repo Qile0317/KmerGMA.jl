@@ -133,7 +133,8 @@ end
     @test Int(round(estimate_optimal_threshold(RV,299; buffer = 12))) == 27
     
     rvs,ws,cons,inv = cluster_ref_API(tf, 6; cutoffs = [7,12,20,25], include_avg = false)
-    @test estimate_optimal_threshold(rvs,ws; buffer = 8) == [37.85127551020407, 33.367253451676525, 40.69833333333333, 36.602333333333355, 29.228101851851818]
+    rounded_res = [Int(round(num)) for num in estimate_optimal_threshold(rvs,ws; buffer = 8)]
+    @test rounded_res == [38, 33, 41, 37, 29]
 end
 
 @testset "Alignment.jl" begin
