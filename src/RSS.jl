@@ -30,3 +30,5 @@ function is_RSS(RSS_align::AlignObj, thr::Int = 1)
     RSS_candidate = RSS_align.aln.b[cigar_to_UnitRange(RSS_align)]
     return RSS_dist(RSS_candidate, RSS_align.aln.a.seq) <= thr
 end
+
+# funnily enough, KmerGMA can technically also do this

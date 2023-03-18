@@ -3,6 +3,8 @@
 # can even have a weighted matrix for more important proteins in heptamer
 # for example the CAC in the heptamer can be weighted
 
+# currently this script has unfixed bugs, do not use. its just a quick proof of conconcept
+
 using BioSequences
 
 export initialize_kmers

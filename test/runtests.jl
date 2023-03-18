@@ -282,6 +282,7 @@ end
     end
 end
 
+"""
 # work in progress paired kmers for upcoming features
 @testset "PairedKmers.jl" begin
     @test (unsigned(228), unsigned(228)) == initialize_kmers(test_seq, 6)
@@ -304,3 +305,6 @@ end
         @test round(mean(bins), digits = 5) == 0.19141
     end
 end
+"""
+
+# should also test RSS
