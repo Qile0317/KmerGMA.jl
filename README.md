@@ -29,7 +29,15 @@ KmerGMA.findGenes(genome_path = "my_sequences.fasta", ref_path = "my_query_seque
 ```
 Where `genome_path` is the file location of a fasta file containing sequences to search over, and `ref_path` is the file location of a fasta file containing the query sequence or a set of alike query sequences (For example V-genes). 
 
-The function defaults to returning a vector of fasta records. The findGenes function has many optional paramaters to optimize/adjust its performance. See the documentation for more details.
+The function defaults to returning a vector of fasta records. 
+
+Alternatively, if accuracy is favored over speed, then its suggested to be running the following: 
+```julia
+KmerGMA.findGenes_cluster_mode(genome_path = "my_sequences.fasta", ref_path = "my_query_sequence_family.fasta")
+```
+Where speed is sacrificed by accuracy.
+
+The functions have many optional paramaters to optimize/adjust its performance. See the documentation for more details.
 
 ## Documentation
 Documentation is deployed at https://qile0317.github.io/KmerGMA.jl
