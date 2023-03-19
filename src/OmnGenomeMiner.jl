@@ -1,5 +1,10 @@
 using BioAlignments, FASTX
 
+# helper function to check if ranges overlap
+function dont_overlap(ur1::UnitRange{Int64}, ur2::UnitRange{Int64})
+    return last(ur1) < first(ur2) || first(ur1) > last(ur2)
+end
+
 function Omn_KmerGMA!(;
     genome_path::String,
     refVecs::Vector{Vector{Float64}},
@@ -102,9 +107,7 @@ function Omn_KmerGMA!(;
                         curr_mins[ind] = kmerDist 
                         CMI = CMIs[ind]
 
-                        if !(CMI in prev_hit_range) 
-                            prev_hit_range = CMI-windowsizes[ind]:CMI+windowsizes[ind]
-
+                        if !(CMI in prev_hit_range)
                             hit_left_ind, hit_right_ind = max(CMI-buff,1), min(CMI+windowsizes[ind]-1+buff,sequence_length)
                             seq_UnitRange = hit_left_ind:hit_right_ind
 
@@ -116,24 +119,29 @@ function Omn_KmerGMA!(;
                                 seq_UnitRange = max(1, hit_left_ind+first(aligned_UnitRange)-1):min(hit_left_ind+last(aligned_UnitRange)-1, sequence_length)
                             end
 
-                            if get_hit_loci
-                                push!(hit_loci_vec, first(seq_UnitRange)+genome_pos)
-                            end
+                            # second overlap check
+                            if dont_overlap(seq_UnitRange, prev_hit_range) # second check
+                                if get_hit_loci
+                                    push!(hit_loci_vec, first(seq_UnitRange)+genome_pos)
+                                end
 
-                            #create and push record
-                            push!(resultVec, FASTA.Record(
-                                FASTA.identifier(record)*
-                                    " | Dist = "*string(round(curr_mins[ind], digits = 2))*
-                                    " | KFV = $ind"*
-                                    " | MatchPos = $seq_UnitRange"*
-                                    " | GenomePos = $genome_pos"*
-                                    " | Len = "*string(last(seq_UnitRange)-first(seq_UnitRange)),
-                                view(seq, seq_UnitRange)
-                            ))
+                                #create and push record
+                                push!(resultVec, FASTA.Record(
+                                    FASTA.identifier(record)*
+                                        " | Dist = "*string(round(curr_mins[ind], digits = 2))*
+                                        " | KFV = $ind"*
+                                        " | MatchPos = $seq_UnitRange"*
+                                        " | GenomePos = $genome_pos"*
+                                        " | Len = "*string(last(seq_UnitRange)-first(seq_UnitRange)),
+                                    view(seq, seq_UnitRange)
+                                ))
+                                prev_hit_range = seq_UnitRange # !!
+                            end
+                            #println("$prev_hit_range")
 
                             # important to mostly avoid duplicates - in rare cases it may produce duplicates still.
-                            prev_hit_range = seq_UnitRange
-                            # prev_hit_range = min(first(seq_UnitRange), first(prev_hit_range)):max(last(seq_UnitRange), last(prev_hit_range))
+                        
+                            #prev_hit_range = min(first(seq_UnitRange), first(prev_hit_range)):max(last(seq_UnitRange), last(prev_hit_range)) # could be even more/less conservative if wanted
                         end
                     end
                 end

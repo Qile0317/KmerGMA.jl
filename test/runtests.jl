@@ -214,12 +214,10 @@ end
         # thresholds are purposefully lower
         Omn_KmerGMA!(genome_path = test_mini_genome, refVecs = rvs, windowsizes = ws, consensus_seqs = cons, resultVec = test_res,
                     buff = 200, thr_vec = [37,33,38,34,28,27])
-        @test length(test_res) == 5
-        @test FASTA.description(test_res[5]) == "AM773548.1 | Dist = 33.1 | KFV = 2 | MatchPos = 33845:34132 | GenomePos = 0 | Len = 287"
-        @test FASTA.description(test_res[4]) == "AM773548.1 | Dist = 37.11 | KFV = 1 | MatchPos = 33845:34132 | GenomePos = 0 | Len = 287"
-        @test FASTA.description(test_res[3]) == "AM773548.1 | Dist = 38.0 | KFV = 3 | MatchPos = 33845:34132 | GenomePos = 0 | Len = 287"
-        @test FASTA.description(test_res[2]) == "AM773548.1 | Dist = 34.12 | KFV = 4 | MatchPos = 23907:24179 | GenomePos = 0 | Len = 272"
+        @test length(test_res) == 3
         @test FASTA.description(test_res[1]) == "AM773548.1 | Dist = 38.0 | KFV = 3 | MatchPos = 6852:7139 | GenomePos = 0 | Len = 287"
+        @test FASTA.description(test_res[2]) == "AM773548.1 | Dist = 34.12 | KFV = 4 | MatchPos = 23907:24179 | GenomePos = 0 | Len = 272"
+        @test FASTA.description(test_res[3]) == "AM773548.1 | Dist = 38.0 | KFV = 3 | MatchPos = 33845:34132 | GenomePos = 0 | Len = 287"
     end
 end
 
@@ -229,9 +227,13 @@ end
     @test FASTA.description(a[1]) == "AM773548.1 | dist = 8.18 | MatchPos = 6852:7153 | GenomePos = 0"
     @test FASTA.description(a[2]) == "AM773548.1 | dist = 24.91 | MatchPos = 23907:24249 | GenomePos = 0"
     @test FASTA.description(a[3]) == "AM773548.1 | dist = 10.9 | MatchPos = 33845:34144 | GenomePos = 0"
-
+    
+    a = findGenes_cluster_mode(genome_path = test_mini_genome, ref_path = tf)[1]
+    @test length(a) == 3
+    @test FASTA.description(a[1]) == "AM773548.1 | Dist = 29.26 | KFV = 5 | MatchPos = 6858:7146 | GenomePos = 0 | Len = 288"
+    @test FASTA.description(a[2]) == "AM773548.1 | Dist = 29.27 | KFV = 5 | MatchPos = 23907:24196 | GenomePos = 0 | Len = 289"
+    @test FASTA.description(a[3]) == "AM773548.1 | Dist = 40.83 | KFV = 3 | MatchPos = 33845:34132 | GenomePos = 0 | Len = 287"
     # more comprehensive testing is needed of other params but my personal testing shows that it works nicely
-    # need to test findGenes_cluster_mode
 end
 
 @testset "ExactMatch.jl" begin
@@ -306,5 +308,3 @@ end
     end
 end
 """
-
-# should also test RSS

@@ -158,10 +158,8 @@ function findGenes_cluster_mode(; genome_path::String, ref_path::String,
     if do_return_dists; @warn "Setting do_return_dists to true may be very memory intensive" end 
 
     RVs, windowsizes, consensus_refseqs, invalids = cluster_ref_API(ref_path, k; cutoffs = cluster_cutoffs)
-    println(windowsizes)
-    println(invalids)
     RVs, windowsizes, consensus_refseqs = eliminate_null_params(RVs, windowsizes, consensus_refseqs, invalids)
-    println(windowsizes)
+
     if k >= minimum(windowsizes); stop("some/all of the average reference sequence lengths exceeds/is equal to the chosen kmer length $k. please reduce k. ") end
 
     # distance thresholds
@@ -218,5 +216,3 @@ function write_results(KmerGMA_result_vec::Vector{FASTX.FASTA.Record}, file_path
     end
     @info "writing complete"
 end
-
-a = findGenes_cluster_mode(genome_path = "test/Alp_V_locus.fasta", ref_path = "test/Alp_V_ref.fasta")[1] #KmerDistThrs = Float64[35,31,38,34,27,27]
