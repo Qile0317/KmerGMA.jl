@@ -149,7 +149,7 @@ There are some more details to be added in future releases.
 """
 function findGenes_cluster_mode(; genome_path::String, ref_path::String,
     cluster_cutoffs = [7,12,20,25], # cluster cutoff visualization function should be made
-    k::Int = 6, KmerDistThrs = Float64[0], buffer::Int64 = 50, do_align::Bool = true,
+    k::Int = 6, KmerDistThrs = Float64[0.0], buffer::Int64 = 50, do_align::Bool = true,
     do_return_dists::Bool = false, do_return_hit_loci::Bool = false, do_return_align::Bool = false,
     verbose::Bool = true, KmerDist_threshold_buffer::Real = 8.0)
 
@@ -187,7 +187,7 @@ function findGenes_cluster_mode(; genome_path::String, ref_path::String,
         windowsizes = windowsizes, consensus_seqs = consensus_refseqs,
         resultVec = hit_vector, k = k,
         ScaleFactor = (1/2k), mask=unsigned(4^k -1),
-        thr_vec = estimate_optimal_threshold(RVs, windowsizes),
+        thr_vec = KmerDistThrs,
         buff = buffer, align_hits = do_align, get_hit_loci = do_return_hit_loci, 
         hit_loci_vec = hit_loci_vec,
         get_aligns = do_return_align, align_vec = alignment_vec)
