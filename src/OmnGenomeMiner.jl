@@ -17,7 +17,7 @@ function Omn_KmerGMA!(;
     thr_vec::Kfv = Float64[35,31,38,34,27,27], 
     buff::Int64 = 50, # if higher should increase accuracy
     Nt_bits::Dict{DNA, UInt64} = NUCLEOTIDE_BITS,
-    score_model::AffineGapScoreModel{Int64} = AffineGapScoreModel(EDNAFULL, gap_open=-69, gap_extend=-1),
+    score_model::AffineGapScoreModel{Int64} = AffineGapScoreModel(EDNAFULL, gap_open=-200, gap_extend=-1),
     genome_pos::Int64 = 0,
     align_hits::Bool = true,
     get_hit_loci::Bool = false,

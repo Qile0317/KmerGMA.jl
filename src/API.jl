@@ -175,9 +175,9 @@ function findGenes_cluster_mode(; genome_path::String, ref_path::String,
             end
         end
         if ind_warn_str != ""
-            @warn "The kmer distance thresholds $KmerDistThrs at index/indicies $warn_str  for k = $k is potentially too high, and can result in many false positives."
+            @warn "The kmer distance thresholds $KmerDistThrs at index/indicies $ind_warn_str  for k = $k is potentially too high, and can result in many false positives."
         end
-    end; estimated_optimal_KmerDistThrs = nothing # hopefully saves teeny bit of memory
+    end#; estimated_optimal_KmerDistThrs = nothing # hopefully saves teeny bit of memory
     
     hit_vector = FASTX.FASTA.Record[]
     dist_vec, hit_loci_vec, alignment_vec = Float64[], Int[], SubAlignResult[]  

@@ -76,12 +76,16 @@ function exactMatch(query, seq; overlap::Bool = true)
 end
 
 #had to get rid of some type specifications
-function exactMatch(query, Reader::FASTX.FASTA.Reader{}; overlap::Bool = true)
+function exactMatch(query, Reader; overlap::Bool = true)
     if typeof(query) == FASTX.FASTA.Record
         query = getSeq(query)
     end
     q = ExactSearchQuery(LongSequence{DNAAlphabet{4}}(query))
     identify = Dict{String,Vector{UnitRange{Int64}}}()
+
+    if typeof(Reader) == String
+        Reader = open(FASTA.Reader, Reader)
+    end
     for record in Reader
         seq = getSeq(record)
         RM = exactMatch(query,seq; overlap=overlap)
@@ -89,12 +93,12 @@ function exactMatch(query, Reader::FASTX.FASTA.Reader{}; overlap::Bool = true)
             identify[FASTA.identifier(record)] = RM
         end
     end
+    close(reader)
     if identify == Dict{String, Vector{UnitRange{Int64}}}()
         return "no match"
     else
         return identify
     end
-    close(reader)
 end
 
 export exactMatch
