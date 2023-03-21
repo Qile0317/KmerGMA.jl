@@ -245,8 +245,6 @@ end
 
 @testset "ExactMatch.jl" begin
 
-    #I'll fix this later but it does work
-    """
     @testset "singleSeq" begin
         @test exactMatch(dna"GAG",dna"CCCCCCCGAGCTTTT") == [8:10]
         @test exactMatch(dna"GAG",dna"CGAGCCCGAGCTTTT") == [2:4, 8:10]
@@ -256,6 +254,7 @@ end
         @test isnothing(exactMatch(dna"GAG",dna"CCCCCCTTT"))
     end
 
+    """ # fix later 
     @testset "readerVer" begin
     #testing a subseq of the first sequence of a reader as a dna seq
         @test open(FASTX.FASTA.Reader,tf) do io

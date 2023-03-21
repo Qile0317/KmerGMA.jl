@@ -22,10 +22,10 @@ The main API to conduct homology searching in a genome, using a kmer-based seque
 Returns the approximate matches as FASTA record vector WITHIN A VECTOR of length 1 in the default configuration of the parameters. The descriptions of the record contain information about the match. 
 The format of the description appears as so:
 
-   "Identifier | dist = a | MatchPos = b:c | GenomePos = e"
+   "Identifier | dist = a | MatchPos = b:c | GenomePos = e | Len = f"
 
 Where `Identifier` is the contig ID of the genome where the current hit was found. `dist` is the kmer similarity, and `MatchPos` is the unitrange for the match in the contig.
-`GenomePos` is the cumulative nucleotides that have been iterated over until the current contig.
+`GenomePos` is the cumulative nucleotides that have been iterated over until the current contig, and `Len` is simply the length of the hit length.
 
 ...
 # Arguments

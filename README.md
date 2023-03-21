@@ -35,7 +35,7 @@ Alternatively, if accuracy is favored over speed, then its suggested to be runni
 ```julia
 KmerGMA.findGenes_cluster_mode(genome_path = "my_sequences.fasta", ref_path = "my_query_sequence_family.fasta")
 ```
-Where speed is sacrificed by accuracy.
+Where speed is sacrificed for accuracy.
 
 The functions have many optional paramaters to optimize/adjust its performance. See the documentation for more details.
 
@@ -43,7 +43,7 @@ The functions have many optional paramaters to optimize/adjust its performance. 
 Documentation is deployed at https://qile0317.github.io/KmerGMA.jl
 
 ## Performance
-The current version of the homology searching `findGenes` function can iterate on average 40 megabases per second. So it would take about 80 seconds for the human genome.
+The current version of the homology searching `findGenes` function can iterate on average 40 megabases per second. So it would take about 80 seconds for the human genome. The performance of `findGenes_cluster_mode` slows porportionally to the number of reference sequence clusters, so for 5 clusters it would be 40/5 = 8 megabases/second. 
 
 ## Contributions
 The work was initially begun at Karolinska Institutet, as a side project to the in-progress project ```Discovery of Novel Germline Immunoglobulin alleles``` in which 2 approaches were utilized to expand camelid V(D)J databases. Thanks to @murrellb for massive support. More information is found at https://github.com/Qile0317/SoFoCompBio22

@@ -42,8 +42,37 @@ function FindAllOverlap(q::ExactSearchQuery{typeof(isequal), LongSequence{DNAAlp
     answer == UnitRange[] ? (return nothing) : (return answer)
 end
 
+# helper type functions
+function convert_to_search_query(query::Any)
+    query_type = typeof(query)
+    if query_type == Seq
+        return ExactSearchQuery(query)
+    end
+    if query_type == FASTX.FASTA.Record
+        return ExactSearchQuery(getSeq(query))
+    end
+    if query_type == SubSeq || query_type == String
+        return ExactSearchQuery(Seq(query))
+    end
+    error("Invalid query sequence type")
+end
+
+function convert_to_Seq(seq::Any)
+    seq_type = typeof(seq)
+    if seq_type == FASTX.FASTA.Record
+        return getSeq(seq)
+    end
+    if seq_type == SubSeq
+        return Seq(seq)
+    end
+    if seq_type == Seq
+        return seq
+    end
+    error("Invalid subject sequence type")
+end
+
 """
-    exactMatch(query, seq, overlap::Bool = true)
+    exactMatch(query, subject_seq, overlap::Bool = true)
 
 Finds all exact matches to a query sequence(dna longsequence) in the given genome assembly as a reader object(seq) or single sequence
 
@@ -57,34 +86,22 @@ Returns a dictionary of the identifiers of individual records it found matches i
 
 The algorithm is simply based on the Biosequences findfirst() function and runs quite fast through entire genomes.
 """
-function exactMatch(query, seq; overlap::Bool = true)
-    if typeof(query) == FASTX.FASTA.Record
-        query = getSeq(query)
-    end
-    q = ExactSearchQuery(LongSequence{DNAAlphabet{4}}(query))
-    if typeof(seq) == FASTX.FASTA.Record
-        seq = getSeq(seq)
-    else
-        seq = LongSequence{DNAAlphabet{4}}(seq)
-    end
+function exactMatch(query::Any, subject_seq; overlap::Bool = true)
+    q = convert_to_search_query(query)
+    seq = convert_to_Seq(subject_seq)
     answer = UnitRange[]
     if overlap
         FindAllOverlap(q, seq, answer)
     else
-        FindAll(q,seq, answer)
+        FindAll(q, seq, answer)
     end
 end
 
-#had to get rid of some type specifications
-function exactMatch(query, Reader; overlap::Bool = true)
-    if typeof(query) == FASTX.FASTA.Record
-        query = getSeq(query)
-    end
-    q = ExactSearchQuery(LongSequence{DNAAlphabet{4}}(query))
-    identify = Dict{String,Vector{UnitRange{Int64}}}()
-
-    if typeof(Reader) == String
-        Reader = open(FASTA.Reader, Reader)
+function exactMatch(query::Any, subject_seq::Union{String, FASTX.FASTA.Reader}; overlap::Bool = true)
+    q = convert_to_search_query(query)
+    identify = Dict{String, Vector{UnitRange{Int64}}}()
+    if typeof(subject_seq) == String
+        Reader = open(FASTA.Reader, subject_seq)
     end
     for record in Reader
         seq = getSeq(record)
@@ -93,7 +110,7 @@ function exactMatch(query, Reader; overlap::Bool = true)
             identify[FASTA.identifier(record)] = RM
         end
     end
-    close(reader)
+    close(Reader)
     if identify == Dict{String, Vector{UnitRange{Int64}}}()
         return "no match"
     else
@@ -104,6 +121,7 @@ end
 export exactMatch
 
 #the algo is nothing fancy, it just uses BioSequences's exactmatch function. It'll be interesting comparing it to the GMA at SED = 0
+# Should test it with compatible characters and RSSV genes
 
 """
     fasta_id_to_cumulative_len_dict(fasta_file_path::String)

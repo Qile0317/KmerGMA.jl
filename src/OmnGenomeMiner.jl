@@ -1,6 +1,7 @@
 using BioAlignments, FASTX
 
 # alot of the subprocesses can be written into functions for readability but for performance sake everything is kept in the function
+# a lot of the values here initialize for k = 6, purely for the sake of more concisce testing.
 
 function Omn_KmerGMA!(;
     genome_path::String,
