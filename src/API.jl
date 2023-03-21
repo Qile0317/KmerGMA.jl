@@ -68,19 +68,18 @@ function findGenes(; genome_path::String, ref_path::String, do_cluster::Bool = f
         @warn "The kmer distance threshold $KmerDistThr for k = $k is likely too high, and can result in many false positives"
     end
     
-    KmerGMA_constant_parameters = init_InputConsts(
-        genome_path = genome_path, refVec = RV, consensus_refseq = consensus_refseq,
-        k = k, windowsize = windowsize, thr = KmerDistThr, buff = buffer,
-        mask = unsigned(4^k - 1), ScaleFactor = 1/(2*k), 
-        do_align = do_align, do_return_dists = do_return_dists,
-        do_return_align = do_return_align, get_hit_loci = do_return_hit_loci);
-    
     hit_vector = FASTX.FASTA.Record[]
     dist_vec, hit_loci_vec, alignment_vec = Float64[], Int[], []  
     curr_KFV, cumulative_length_in_genome = zeros(4^k), 0
 
     if verbose; @info "initializing iteration..." end 
-    ac_gma_testing!(inp = KmerGMA_constant_parameters,
+    ac_gma_testing!(
+        genome_path = genome_path, refVec = RV, consensus_refseq = consensus_refseq,
+        k = k, windowsize = windowsize, thr = KmerDistThr, buff = buffer,
+        mask = unsigned(4^k - 1), ScaleFactor = 1/k, 
+        do_align = do_align, do_return_dists = do_return_dists,
+        do_return_align = do_return_align, get_hit_loci = do_return_hit_loci,
+
         curr_kmer_freq = curr_KFV, dist_vec = dist_vec,
         result_align_vec = alignment_vec,
         hit_loci_vec = hit_loci_vec, genome_pos = cumulative_length_in_genome,
@@ -180,23 +179,25 @@ function findGenes_cluster_mode(; genome_path::String, ref_path::String,
     end#; estimated_optimal_KmerDistThrs = nothing # hopefully saves teeny bit of memory
     
     hit_vector = FASTX.FASTA.Record[]
-    dist_vec, hit_loci_vec, alignment_vec = Float64[], Int[], SubAlignResult[]  
+    hit_loci_vec, alignment_vec = Int[], SubAlignResult[]  
+    dist_vec_vec = [Float64[] for _ in 1:length(windowsizes)]
 
     if verbose; @info "initializing iteration..." end 
     Omn_KmerGMA!(genome_path = genome_path, refVecs = RVs,
         windowsizes = windowsizes, consensus_seqs = consensus_refseqs,
         resultVec = hit_vector, k = k,
-        ScaleFactor = (1/2k), mask=unsigned(4^k -1),
+        ScaleFactor = 1/k, mask=unsigned(4^k -1),
         thr_vec = KmerDistThrs,
         buff = buffer, align_hits = do_align, get_hit_loci = do_return_hit_loci, 
         hit_loci_vec = hit_loci_vec,
-        get_aligns = do_return_align, align_vec = alignment_vec)
+        get_aligns = do_return_align, align_vec = alignment_vec,
+        do_return_dists = do_return_dists, dist_vec_vec = dist_vec_vec)
 
     info_str = "genome mining completed successfully, returning vector of: vector of hits"
     output_vector = Any[hit_vector]
     if do_return_hit_loci; push!(output_vector, hit_loci_vec); info_str *= ", vector of hit locations" end
     if do_return_align; push!(output_vector, alignment_vec); info_str *= ", vector of alignments" end 
-    if do_return_dists; push!(output_vector, dist_vec) ; info_str *= ", vector of kmer distances along the genome"end
+    if do_return_dists; push!(output_vector, dist_vec_vec) ; info_str *= ", vector of vectors of kmer distances along the genome"end
     
     if verbose; @info info_str; @info "To write the results, use `KmerGMA.write_results`" end
     return output_vector

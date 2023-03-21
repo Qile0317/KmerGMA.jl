@@ -1,11 +1,8 @@
 using BioSequences, FASTX, Distances, BioAlignments
 
-# this shouldn't be that hard to multithread/parallelize
+# lots of memory is consumed because the records become stored in memory
 
-const InputConsts = NamedTuple{(:genome_path, :refVec, :consensus_refseq, :k, :windowsize, :thr, :buff, :mask, :Nt_bits, :ScaleFactor, :do_align, :score_model, :do_return_dists, :do_return_align, :get_hit_loci),
-    Tuple{String, Vector{Float64}, LongSequence{DNAAlphabet{4}}, Int64, Int64, Float64, Int64, UInt64, Dict{DNA, UInt64}, Float64, Bool, AffineGapScoreModel{Int64}, Bool, Bool, Bool}}
-
-function init_InputConsts(;
+function ac_gma_testing!(;
     genome_path::String,
     refVec::Vector{Float64},
     consensus_refseq::Seq,
@@ -15,78 +12,67 @@ function init_InputConsts(;
     buff::Int64 = 50,
     mask::UInt64 = unsigned(4095), 
     Nt_bits::DnaBits = NUCLEOTIDE_BITS,
-    ScaleFactor::Float64 = 0.0833333333333333333333,
+    ScaleFactor::Float64 = 0.166666666666666666666666666667, # 1/k, NOT 1/2k !!
     do_align::Bool = true,
-    score_model::AffineGapScoreModel{Int64} = AffineGapScoreModel(EDNAFULL, gap_open=-5, gap_extend=-1),
+    score_model::AffineGapScoreModel{Int64} = AffineGapScoreModel(EDNAFULL, gap_open=-69, gap_extend=-1),
     do_return_dists::Bool = false, # dangerous for memory if true
     do_return_align::Bool = false,
-    get_hit_loci::Bool = false
-    )
-    return InputConsts((genome_path,refVec,consensus_refseq,
-        k,windowsize,thr,buff,mask,Nt_bits,ScaleFactor,do_align,
-        score_model,do_return_dists,do_return_align,get_hit_loci))
-end
+    get_hit_loci::Bool = false,
 
-export init_InputConsts
-
-# sooo... from benchmarktools it seems using the namedTuple actually worsened the performance...
-# additionally, lots of memory is consumed because the records become stored in memory
-
-function ac_gma_testing!(; inp::InputConsts,
     curr_kmer_freq::Vector{Float64} = zeros(4096),
     dist_vec = Float64[], result_align_vec = [], hit_loci_vec = Int[],
     genome_pos::Int = 0, resultVec::Vector{FASTA.Record} = FASTA.Record[]
     )
-    open(FASTX.FASTA.Reader, inp.genome_path) do reader 
+    open(FASTX.FASTA.Reader, genome_path) do reader 
         for record in reader 
-            k = inp.k
             seq::Seq = getSeq(record)
-            proceed::Bool, goal_ind::Int64= true, 0
+            proceed::Bool, goal_ind::Int64 = true, 0
 
             #edge case
             sequence_length = length(seq)
-            if sequence_length < inp.windowsize; return end
+            if sequence_length < windowsize; return end
 
             #initial operations for the first window  
             fill!(curr_kmer_freq, 0)
-            kmer_count!(str = view(seq, 1:inp.windowsize), k = k,
-                bins = curr_kmer_freq, mask = inp.mask, Nt_bits = inp.Nt_bits)
-            currSqrEuc = Distances.sqeuclidean(inp.refVec, curr_kmer_freq)
+            kmer_count!(str = view(seq, 1:windowsize), k = k,
+                bins = curr_kmer_freq, mask = mask, Nt_bits = Nt_bits)
+            kmerDist = (1/(2*k))*Distances.sqeuclidean(refVec, curr_kmer_freq)
 
             #initializing variables
-            CMI, stop, currminim = 2, true, currSqrEuc
+            CMI, stop, currminim = 2, true, kmerDist
 
             left_kmer = unsigned(0)
             for c in seq[1:k-1]
-                left_kmer = (left_kmer << 2) + inp.Nt_bits[c]
+                left_kmer = (left_kmer << 2) + Nt_bits[c]
             end
 
             right_kmer = unsigned(0)
-            for c in seq[inp.windowsize-k+1:inp.windowsize-1]
-                right_kmer = (right_kmer << 2) + inp.Nt_bits[c]
+            for c in seq[windowsize-k+1:windowsize-1]
+                right_kmer = (right_kmer << 2) + Nt_bits[c]
             end
 
-            for i in 1:(sequence_length-inp.windowsize)
+            for i in 1:(sequence_length-windowsize)
                 # first kmer
-                left_kmer = ((left_kmer << 2) & inp.mask) + inp.Nt_bits[seq[i+k-1]]
-                left_ind = -~left_kmer
-                @views currSqrEuc -= (inp.refVec[left_ind]-curr_kmer_freq[left_ind])^2 
-                curr_kmer_freq[left_ind] -= 1
-                @views currSqrEuc += (inp.refVec[left_ind]-curr_kmer_freq[left_ind])^2
+                left_kmer = ((left_kmer << 2) & mask) + Nt_bits[seq[i+k-1]]
+                left_ind = left_kmer + 1
 
                 # last kmer + 1bp
-                right_kmer = ((right_kmer << 2) & inp.mask) + inp.Nt_bits[seq[i+inp.windowsize-1]]
-                right_ind = -~right_kmer
-                @views currSqrEuc -= (inp.refVec[right_ind]-curr_kmer_freq[right_ind])^2
-                curr_kmer_freq[right_ind] += 1
-                @views currSqrEuc += (inp.refVec[right_ind]-curr_kmer_freq[right_ind])^2
+                right_kmer = ((right_kmer << 2) & mask) + Nt_bits[seq[i+windowsize-1]]
+                right_ind = right_kmer + 1
 
-                # convert to kmer Distance 
-                kmerDist = currSqrEuc * inp.ScaleFactor 
-                if inp.do_return_dists; push!(dist_vec, kmerDist) end 
+                # simplified operation to update the distance - it is right, right??
+                kmerDist += ScaleFactor*(1 +
+                    curr_kmer_freq[right_ind] + refVec[left_ind] -
+                    refVec[right_ind] - curr_kmer_freq[left_ind])
+
+                if do_return_dists; push!(dist_vec, kmerDist) end 
+
+                # update the current kmer freq vector
+                curr_kmer_freq[left_ind] -= 1
+                curr_kmer_freq[right_ind] += 1
 
                 # minima finder
-                if kmerDist < inp.thr
+                if kmerDist < thr
                     if kmerDist < currminim
                         currminim = kmerDist
                         CMI = i
@@ -100,15 +86,15 @@ function ac_gma_testing!(; inp::InputConsts,
                             proceed = true
                         end
                     else # operations here aren't optimized but for actual long sequences the time is negligible
-                        goal_ind = CMI + inp.windowsize - 1
+                        goal_ind = CMI + windowsize - 1
                         proceed = false 
                         
                         # alignment and matched unitrange
-                        left_ind, right_ind = max(CMI-inp.buff,1), min(CMI+inp.windowsize-1+inp.buff,sequence_length)
+                        left_ind, right_ind = max(CMI-buff,1), min(CMI+windowsize-1+buff,sequence_length)
 
-                        if inp.do_align 
-                            aligned_obj = pairalign(SemiGlobalAlignment(),inp.consensus_refseq,view(seq,left_ind:right_ind),inp.score_model)
-                            if inp.do_return_align; push!(result_align_vec, aligned_obj) end
+                        if do_align 
+                            aligned_obj = pairalign(SemiGlobalAlignment(),consensus_refseq,view(seq,left_ind:right_ind),score_model)
+                            if do_return_align; push!(result_align_vec, aligned_obj) end
                             aligned_UnitRange = cigar_to_UnitRange(aligned_obj)
                             seq_UnitRange = max(1, left_ind+first(aligned_UnitRange)-1):min(left_ind+last(aligned_UnitRange)-1, sequence_length)
                         else
@@ -120,13 +106,14 @@ function ac_gma_testing!(; inp::InputConsts,
                             FASTA.identifier(record)*
                                 " | dist = "*string(round(currminim, digits = 2))*
                                 " | MatchPos = $seq_UnitRange"*
-                                " | GenomePos = $genome_pos",
+                                " | GenomePos = $genome_pos"*
+                                " | Len = "*string(last(seq_UnitRange)-first(seq_UnitRange)),
                             view(seq, seq_UnitRange)
                         )
 
-                        if inp.get_hit_loci; push!(hit_loci_vec, first(seq_UnitRange)+genome_pos) end 
+                        if get_hit_loci; push!(hit_loci_vec, first(seq_UnitRange)+genome_pos) end 
                         push!(resultVec, rec)
-                        currminim = currSqrEuc
+                        currminim = kmerDist
                         stop = true
                     end
                 end

@@ -1,9 +1,6 @@
 using BioAlignments, FASTX
 
-# helper function to check if ranges overlap
-function dont_overlap(ur1::UnitRange{Int64}, ur2::UnitRange{Int64})
-    return last(ur1) < first(ur2) || first(ur1) > last(ur2)
-end
+# alot of the subprocesses can be written into functions for readability but for performance sake everything is kept in the function
 
 function Omn_KmerGMA!(;
     genome_path::String,
@@ -12,7 +9,7 @@ function Omn_KmerGMA!(;
     consensus_seqs::Vector{Seq},
     resultVec::Vector{FASTA.Record},
     k::Int64 = 6,
-    ScaleFactor::Real = 0.0833333333333333333333333333333,
+    ScaleFactor::Real = 0.16666666666666666666666666666666666666666666666667,
     mask::UInt64 = unsigned(4095), 
     thr_vec::Kfv = Float64[35,31,38,34,27,27], 
     buff::Int64 = 50, # if higher should increase accuracy
@@ -23,19 +20,20 @@ function Omn_KmerGMA!(;
     get_hit_loci::Bool = false,
     hit_loci_vec::Vector{Int} = Int[],
     get_aligns::Bool = false,
-    align_vec::Vector{SubAlignResult} = SubAlignResult[])
+    align_vec::Vector{SubAlignResult} = SubAlignResult[],
+    do_return_dists::Bool = false,
+    dist_vec_vec::Vector{Vector{Float64}} = [Float64[] for _ in 1:6])
 
     # setup all variables
     len_KFVs::Int64 = length(windowsizes)
-    currSqrEuc_vec = Float64[0 for _ in 1:len_KFVs]
+    kmerDist_vec = Float64[0 for _ in 1:len_KFVs]
     all_curr_kmer_freq = [zeros(4^k) for _ in 1:len_KFVs]
-    curr_mins = Float64[Float64(2 << 60) for _ in 1:len_KFVs]
+    curr_mins = Float64[Float64(100) for _ in 1:len_KFVs]
     CMIs = [1 for _ in 1:len_KFVs]
     stops = [true for _ in 1:len_KFVs]
     maxws = maximum(windowsizes)
 
     right_kmer_vec = UInt[unsigned(0) for _ in 1:len_KFVs]
-    right_ind_vec =  UInt[unsigned(0) for _ in 1:len_KFVs]
 
     open(FASTX.FASTA.Reader, genome_path) do reader 
         for record in reader 
@@ -53,7 +51,7 @@ function Omn_KmerGMA!(;
                 kmer_count!(str = view(seq, 1:windowsizes[ind]), k = k,
                 bins = all_curr_kmer_freq[ind], mask = mask)
                 
-                currSqrEuc_vec[ind] = curr_mins[ind] = Distances.sqeuclidean(refVecs[ind], all_curr_kmer_freq[ind])
+                kmerDist_vec[ind] = curr_mins[ind] = (1/(2*k))*Distances.sqeuclidean(refVecs[ind], all_curr_kmer_freq[ind])
 
                 CMIs[ind], stops[ind] = 1, true
 
@@ -78,20 +76,18 @@ function Omn_KmerGMA!(;
                 for ind in 1:len_KFVs
                     # change right kmer
                     right_kmer_vec[ind] = ((right_kmer_vec[ind] << 2) & mask) + Nt_bits[seq[i+windowsizes[ind]-1]]
-                    right_ind_vec[ind] = 1+right_kmer_vec[ind]
+                    right_ind = 1 + right_kmer_vec[ind]
 
-                    # update count at left kmer
-                    currSqrEuc_vec[ind] -= (refVecs[ind][left_ind] - all_curr_kmer_freq[ind][left_ind])^2 # problem, the left_ind is not right
+                    # simplified operation to update the distance
+                    kmerDist_vec[ind] += ScaleFactor*(
+                        all_curr_kmer_freq[ind][right_ind] + refVecs[ind][left_ind] -
+                        refVecs[ind][right_ind] - all_curr_kmer_freq[ind][left_ind] + 1)
+
                     all_curr_kmer_freq[ind][left_ind] -= 1
-                    currSqrEuc_vec[ind] += (refVecs[ind][left_ind] - all_curr_kmer_freq[ind][left_ind])^2
-                    
-                    # update count at right kmer
-                    right_ind = right_ind_vec[ind]
-                    currSqrEuc_vec[ind] -= (refVecs[ind][right_ind] - all_curr_kmer_freq[ind][right_ind])^2
                     all_curr_kmer_freq[ind][right_ind] += 1
-                    currSqrEuc_vec[ind] += (refVecs[ind][right_ind] - all_curr_kmer_freq[ind][right_ind])^2
                 
-                    kmerDist = currSqrEuc_vec[ind] * ScaleFactor 
+                    kmerDist = kmerDist_vec[ind]
+                    if do_return_dists; push!(dist_vec_vec[ind], kmerDist) end 
 
                     # minima finder (worse matches may sometimes be used but should be fine)
                     if kmerDist < thr_vec[ind]
@@ -120,10 +116,8 @@ function Omn_KmerGMA!(;
                             end
 
                             # second overlap check
-                            if dont_overlap(seq_UnitRange, prev_hit_range) # second check
-                                if get_hit_loci
-                                    push!(hit_loci_vec, first(seq_UnitRange)+genome_pos)
-                                end
+                            if last(seq_UnitRange) < first(prev_hit_range) || first(seq_UnitRange) > last(prev_hit_range)
+                                if get_hit_loci; push!(hit_loci_vec, first(seq_UnitRange)+genome_pos) end
 
                                 #create and push record
                                 push!(resultVec, FASTA.Record(
@@ -135,13 +129,8 @@ function Omn_KmerGMA!(;
                                         " | Len = "*string(last(seq_UnitRange)-first(seq_UnitRange)),
                                     view(seq, seq_UnitRange)
                                 ))
-                                prev_hit_range = seq_UnitRange # !!
+                                prev_hit_range = seq_UnitRange # !! #prev_hit_range = min(first(seq_UnitRange), first(prev_hit_range)):max(last(seq_UnitRange), last(prev_hit_range)) # could be even more/less conservative if wanted
                             end
-                            #println("$prev_hit_range")
-
-                            # important to mostly avoid duplicates - in rare cases it may produce duplicates still.
-                        
-                            #prev_hit_range = min(first(seq_UnitRange), first(prev_hit_range)):max(last(seq_UnitRange), last(prev_hit_range)) # could be even more/less conservative if wanted
                         end
                     end
                 end
