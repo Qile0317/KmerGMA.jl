@@ -4,11 +4,16 @@ export findGenes
 export findGenes_cluster_mode
 export write_results
 
+# tiny helper function for warnings
+function warn_helper(k::Int, do_return_dists::Bool)
+    if k < 5; @warn "Such a low k value of $k likely won't yield the most accurate results" end
+    if do_return_dists; @warn "Setting do_return_dists to true may be very memory intensive" end 
+end
+
 """
     KmerGMA.findGenes(;
         genome_path::String,
         ref_path::String,
-        do_cluster::Bool = false, # to be implemented
         k::Int = 6,
         KmerDistThr::Union{Int64, Float64} = 0,
         buffer::Int64 = 50,
@@ -33,7 +38,6 @@ Where `Identifier` is the contig ID of the genome where the current hit was foun
 - `ref_path`: the file location of a fasta file containing the reference sequence(s). The references should be very similar in length.
 
 # Optional Arguments
-- `do_cluster::Bool = false`: work in progress, has no functionality at the moment
 - `k::Int64 = 6`: the kmer length to use for approximate matching. Generally it should probably remain between 5 - 10 and probably does not have a profound impact on how the matches are found. Check out the pre-print for more information
 - `KmerDistThr::Int64 = 0`: the Kmer Distance distance threshold for sequence matches to the query reference sequence set. Out of the context of the algorithm, lower values mean matches have to be more similar to the references. If left as 0, it is automatically computed. Once again the pre-print has information on this argument.
 - `buffer::Int64 = 50`: the amount of nucleotides left and right of a matched sequence that should be added to the returned fasta sequences, as KmerGMA is a heuristic
@@ -49,17 +53,16 @@ The last three arguments would add term to the output. The output vector would i
 
 Note: Playing with the `KmerDistThr` argument could return more or less matches every time. 
 """
-function findGenes(; genome_path::String, ref_path::String, do_cluster::Bool = false, # to be implemented
+function findGenes(; genome_path::String, ref_path::String,
     k::Int = 6, KmerDistThr::Union{Int64, Float64} = 0, buffer::Int64 = 50, do_align::Bool = true,
     do_return_dists::Bool = false, do_return_hit_loci::Bool = false, do_return_align::Bool = false,
     verbose::Bool = true, KmerDist_threshold_buffer::Real = 8.0)
 
     if verbose; @info "pre-processing references and parameters..." end 
-    if k < 5; @warn "Such a low k value of $k likely won't yield the most accurate results" end
-    if do_return_dists; @warn "Setting do_return_dists to true may be very memory intensive" end 
+    warn_helper(k, do_return_dists)
 
     RV, windowsize, consensus_refseq = gen_ref_ws_cons(ref_path, k)
-    if k >= windowsize; stop("the average reference sequence length $windowsize exceeds/is equal to the chosen kmer length $k. please reduce k. ") end
+    if k >= windowsize; error("the average reference sequence length $windowsize exceeds/is equal to the chosen kmer length $k. please reduce k. ") end
 
     estimated_optimal_KmerDistThr = estimate_optimal_threshold(RV, windowsize, buffer = KmerDist_threshold_buffer)
     if KmerDistThr == 0
@@ -85,11 +88,11 @@ function findGenes(; genome_path::String, ref_path::String, do_cluster::Bool = f
         hit_loci_vec = hit_loci_vec, genome_pos = cumulative_length_in_genome,
         resultVec = hit_vector)
 
-    info_str = "genome mining completed successfully, returning vector of: vector of hits"
+    if verbose; info_str = "genome mining completed successfully, returning vector of: vector of hits" end 
     output_vector = Any[hit_vector]
-    if do_return_hit_loci; push!(output_vector, hit_loci_vec); info_str *= ", vector of hit locations" end
-    if do_return_align; push!(output_vector, alignment_vec); info_str *= ", vector of alignments" end 
-    if do_return_dists; push!(output_vector, dist_vec) ; info_str *= ", vector of kmer distances along the genome"end
+    if do_return_hit_loci; push!(output_vector, hit_loci_vec); if verbose; info_str *= ", vector of hit locations" end end
+    if do_return_align; push!(output_vector, alignment_vec); if verbose; info_str *= ", vector of alignments" end end
+    if do_return_dists; push!(output_vector, dist_vec) ; if verbose; info_str *= ", vector of kmer distances along the genome"end end 
     
     if verbose; @info info_str end
     return output_vector
@@ -153,13 +156,12 @@ function findGenes_cluster_mode(; genome_path::String, ref_path::String,
     verbose::Bool = true, KmerDist_threshold_buffer::Real = 8.0)
 
     if verbose; @info "pre-processing references and parameters..." end 
-    if k < 5; @warn "Such a low k value of $k likely won't yield the most accurate results" end
-    if do_return_dists; @warn "Setting do_return_dists to true may be very memory intensive" end 
+    warn_helper(k, do_return_dists)
 
     RVs, windowsizes, consensus_refseqs, invalids = cluster_ref_API(ref_path, k; cutoffs = cluster_cutoffs)
     RVs, windowsizes, consensus_refseqs = eliminate_null_params(RVs, windowsizes, consensus_refseqs, invalids)
 
-    if k >= minimum(windowsizes); stop("some/all of the average reference sequence lengths exceeds/is equal to the chosen kmer length $k. please reduce k. ") end
+    if k >= minimum(windowsizes); error("some/all of the average reference sequence lengths exceeds/is equal to the chosen kmer length $k. please reduce k. ") end
 
     # distance thresholds
     estimated_optimal_KmerDistThrs = estimate_optimal_threshold(RVs, windowsizes; buffer = KmerDist_threshold_buffer)
@@ -174,9 +176,9 @@ function findGenes_cluster_mode(; genome_path::String, ref_path::String,
             end
         end
         if ind_warn_str != ""
-            @warn "The kmer distance thresholds $KmerDistThrs at index/indicies $ind_warn_str  for k = $k is potentially too high, and can result in many false positives."
+            @warn "The kmer distance thresholds $KmerDistThrs"*" at index/indicies $ind_warn_str"[1:end-2]*" for k = $k is potentially too high, and may result in more false positives."
         end
-    end#; estimated_optimal_KmerDistThrs = nothing # hopefully saves teeny bit of memory
+    end; estimated_optimal_KmerDistThrs = nothing # hopefully saves teeny bit of memory
     
     hit_vector = FASTX.FASTA.Record[]
     hit_loci_vec, alignment_vec = Int[], SubAlignResult[]  

@@ -1,10 +1,23 @@
-using Test, BioSequences, FASTX, Random, BioAlignments
+using Test, BioSequences, FASTX, Random, BioAlignments, Distances
 
 # for devs: if testing the script on your own machine, set the following variable to true
-test_locally = false
+test_locally = true
 
 #setting testing variables
 if test_locally
+    include("../src/Consts.jl")
+    include("../src/Kmers.jl")
+    include("../src/Consensus.jl")
+    include("../src/DistanceTesting.jl")
+    include("../src/ReferenceGeneration.jl")
+    include("../src/Alignment.jl")
+    include("../src/GenomeMiner.jl")
+    include("../src/OmnGenomeMiner.jl")
+    include("../src/API.jl")
+    include("../src/ExactMatch.jl")
+    include("../src/RSS.jl")
+    include("../src/PairedKmers.jl")
+
     tf = "test/Alp_V_ref.fasta"
     test_mini_genome = "test/Alp_V_locus.fasta"
     test_genome = "test/Loci.fasta"
@@ -229,22 +242,46 @@ end
 end
 
 @testset "API.jl" begin
-    a = findGenes(genome_path = test_mini_genome, ref_path = tf, verbose = false)[1]
-    @test length(a) == 3
-    @test FASTA.description(a[1]) == "AM773548.1 | dist = 8.35 | MatchPos = 6852:7150 | GenomePos = 0 | Len = 298"
-    @test FASTA.description(a[2]) == "AM773548.1 | dist = 26.91 | MatchPos = 23907:24211 | GenomePos = 0 | Len = 304"
-    @test FASTA.description(a[3]) == "AM773548.1 | dist = 13.57 | MatchPos = 33845:34143 | GenomePos = 0 | Len = 298"
+    @testset "findGenes" begin
+        a = findGenes(genome_path = test_mini_genome, ref_path = tf, verbose = false)[1]
+        @test length(a) == 3
+        @test FASTA.description(a[1]) == "AM773548.1 | dist = 8.35 | MatchPos = 6852:7150 | GenomePos = 0 | Len = 298"
+        @test FASTA.description(a[2]) == "AM773548.1 | dist = 26.91 | MatchPos = 23907:24211 | GenomePos = 0 | Len = 304"
+        @test FASTA.description(a[3]) == "AM773548.1 | dist = 13.57 | MatchPos = 33845:34143 | GenomePos = 0 | Len = 298"
+    end
     
-    a = findGenes_cluster_mode(genome_path = test_mini_genome, ref_path = tf, verbose = false)[1]
-    @test length(a) == 3
-    @test FASTA.description(a[1]) == "AM773548.1 | Dist = 40.83 | KFV = 3 | MatchPos = 6852:7139 | GenomePos = 0 | Len = 287"
-    @test FASTA.description(a[2]) == "AM773548.1 | Dist = 29.76 | KFV = 6 | MatchPos = 23907:24211 | GenomePos = 0 | Len = 304"
-    @test FASTA.description(a[3]) == "AM773548.1 | Dist = 40.83 | KFV = 3 | MatchPos = 33845:34132 | GenomePos = 0 | Len = 287"
+    @testset "findGenes_cluster_mode" begin
+        a = findGenes_cluster_mode(genome_path = test_mini_genome, ref_path = tf, verbose = false)[1]
+        @test length(a) == 3
+        @test FASTA.description(a[1]) == "AM773548.1 | Dist = 40.83 | KFV = 3 | MatchPos = 6852:7139 | GenomePos = 0 | Len = 287"
+        @test FASTA.description(a[2]) == "AM773548.1 | Dist = 29.76 | KFV = 6 | MatchPos = 23907:24211 | GenomePos = 0 | Len = 304"
+        @test FASTA.description(a[3]) == "AM773548.1 | Dist = 40.83 | KFV = 3 | MatchPos = 33845:34132 | GenomePos = 0 | Len = 287"
+    end
+
+    @testset "warnings" begin
+        @test_logs (:warn,"Such a low k value of 3 likely won't yield the most accurate results") findGenes(
+            genome_path = test_mini_genome, ref_path = tf, k = 3, verbose = false
+        )
+        @test_logs (:warn,"Such a low k value of 3 likely won't yield the most accurate results") findGenes_cluster_mode(
+            genome_path = test_mini_genome, ref_path = tf, k = 3, verbose = false
+        )
+        @test_logs (:warn, "Setting do_return_dists to true may be very memory intensive") findGenes(
+            genome_path = test_mini_genome, ref_path = tf, verbose = false, do_return_dists = true
+        )
+        @test_logs (:warn, "Setting do_return_dists to true may be very memory intensive") findGenes_cluster_mode(
+            genome_path = test_mini_genome, ref_path = tf, verbose = false, do_return_dists = true
+        )
+
+        @testset "kmer distance thresholds in Omn mode" begin
+            @test_logs (:warn, "The kmer distance thresholds [100.0, 200.0, 20.0, 300.0, 200.0, 100.0] at index/indicies 1, 2, 4, 5, 6 for k = 6 is potentially too high, and may result in more false positives.") findGenes_cluster_mode(
+                genome_path = test_mini_genome, ref_path = tf, verbose = false, KmerDistThrs= Float64[100, 200, 20, 300, 200,100]
+            )
+        end
+    end
     # more comprehensive testing is needed of other params but my personal testing shows that it works nicely
 end
 
 @testset "ExactMatch.jl" begin
-
     @testset "singleSeq" begin
         @test exactMatch(dna"GAG",dna"CCCCCCCGAGCTTTT") == [8:10]
         @test exactMatch(dna"GAG",dna"CGAGCCCGAGCTTTT") == [2:4, 8:10]
@@ -254,7 +291,6 @@ end
         @test isnothing(exactMatch(dna"GAG",dna"CCCCCCTTT"))
     end
 
-    """ # fix later 
     @testset "readerVer" begin
     #testing a subseq of the first sequence of a reader as a dna seq
         @test open(FASTX.FASTA.Reader,tf) do io
@@ -282,7 +318,6 @@ end
             "AM939700|IGHV1S5*01|Vicugna" => [174:178])
         end
     end
-    """
     
     @testset "fasta_id_to_cumulative_len_dict" begin
         @test fasta_id_to_cumulative_len_dict(test_genome) == Dict{String, Int64}(
@@ -294,8 +329,6 @@ end
     end
 end
 
-"""
-# work in progress paired kmers for upcoming features
 @testset "PairedKmers.jl" begin
     @test (unsigned(228), unsigned(228)) == initialize_kmers(test_seq, 6)
     @test dna"AT" == as_kmer(initialize_kmers(test_seq, 3)[1], 2)
@@ -312,9 +345,8 @@ end
         @test bins == fill(4.0, 16)
 
         bins = zeros(256)
-        kmer_pair_count!(test_seq,2,8,bins,unsigned(63))
+        kmer_pair_count!(test_seq,2,8,bins,unsigned(15))
         @test sum(bins) == 49.0
         @test round(mean(bins), digits = 5) == 0.19141
     end
 end
-"""

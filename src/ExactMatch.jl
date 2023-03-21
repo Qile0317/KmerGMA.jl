@@ -102,6 +102,8 @@ function exactMatch(query::Any, subject_seq::Union{String, FASTX.FASTA.Reader}; 
     identify = Dict{String, Vector{UnitRange{Int64}}}()
     if typeof(subject_seq) == String
         Reader = open(FASTA.Reader, subject_seq)
+    else
+        Reader = subject_seq
     end
     for record in Reader
         seq = getSeq(record)
