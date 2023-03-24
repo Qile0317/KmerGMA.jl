@@ -11,6 +11,9 @@ The approach was developed to predict novel VDJ alelles in genomes based on sets
 - Homology searching of 1 query sequence or a collection of queries to a local database(s)
 - Find exact gene matches in a genome from a query sequence
 
+## Status
+The main functionalities of the package are all working but not finalized. There may be lots of rapid changes and new releases.
+
 ## Installation
 The package is not yet registered in the pkg registry. Until then, please use:
 

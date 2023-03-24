@@ -219,3 +219,4 @@ function write_results(KmerGMA_result_vec::Vector{FASTX.FASTA.Record}, file_path
     end
     @info "writing complete"
 end
+1+1

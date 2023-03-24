@@ -86,7 +86,7 @@ export as_kmer
 
 Convert a dna biosequence `kmer_seq` into an unsigned integer. Users can ignore the second argument
 """
-function as_UInt(kmer_seq::Seq, Nt_bits::DnaBits = NUCLEOTIDE_BITS)
+function as_UInt(kmer_seq::DnaSeq, Nt_bits::DnaBits = NUCLEOTIDE_BITS)
     bit_kmer = unsigned(0)
     for c in kmer_seq
         bit_kmer = ((bit_kmer << 2) | Nt_bits[c])

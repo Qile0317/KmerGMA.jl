@@ -33,8 +33,35 @@ end
 # more extensive kmer distance testing needs to be done
 # additionally the RV can be mutated
 
-# unfinished - use to visualize
-function mutation_plot(RV::Kfv; seed::Int64 = 42, num_trials::Int64 = 50)
-    
-    println("placeholder")
+const mutation_dict = Dict{DNA, Vector{DNA}}(
+    DNA_A => DNA[DNA_C, DNA_G, DNA_T],
+    DNA_C => DNA[DNA_A, DNA_G, DNA_T],
+    DNA_G => DNA[DNA_C, DNA_A, DNA_T],
+    DNA_T => DNA[DNA_C, DNA_G, DNA_A]
+)
+
+function mutate_seq(seq::Seq, mut_rate::Real)
+    newseq = copy(seq)
+    for i in 1:length(seq)
+        if rand(1)[1] <= mut_rate
+            newseq[i] = rand(mutation_dict[seq[i]])
+        end
+    end
+    return newseq
+end
+
+function mutate_seq!(seq::Seq, mut_rate::Real)
+    for i in 1:length(seq)
+        if rand(1)[1] <= mut_rate
+            seq[i] = rand(mutation_dict[seq[i]])
+        end
+    end
+end
+
+# plot substitution testing results
+function mutation_plot(test_res::Vector{Vector{Float64}}; stepsize::Float64 = 0.0125, alpha::Float64 = 0.05)
+    x_axis_vec = [x for x in 0:0.0125:1]
+    return scatter([x_axis_vec for _ in 1:length(test_res)], test_res,
+        alpha = alpha, color =:black, label = nothing,
+        xlabel = "mutation rate", ylabel = "distance")
 end
