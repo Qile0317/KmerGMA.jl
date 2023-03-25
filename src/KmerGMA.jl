@@ -15,3 +15,15 @@ module KmerGMA
     include("RSS.jl")
     include("PairedKmers.jl")
 end
+
+# new work in progress module
+module StrobemerGMA
+    using BioSequences, FASTX, Distances, Random, BioAlignments, StaticArrays
+    include("Consts.jl")
+    include("Kmers.jl")
+    include("DistanceTesting.jl")
+
+    include("Strobemers.jl")
+    include("StrobemerGMA/MonteCarloBenchmark.jl")
+    include("StrobemerGMA/StrobeGenomeMiner.jl") # work in progress
+end

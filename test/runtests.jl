@@ -37,11 +37,15 @@ end
 const test_seq = dna"ATGCATGC"
 const test_consensus_seq = dna"CAGGTGCAGCTGGTGGAGTCTGGGGGAGGCTTGGTGCAGCCTGGGGGGTCTCTGAGACTCTCCTGTGCAGCCTCTGGATTCACCTTCAGTAGCTATGCCATGAGCTGGGTCCGCCAGGCTCCAGGGAAGGGGCTCGAGTGGGTCTCAGCTATTAATAGTGGTGGTGGTAGCACATACTATGCAGACTCCGTGAAGGGCCGATTCACCATCTCCAGAGACAACGCCAAGAACACGCTGTATCTGCAAATGAACAGCCTGAAACCTGAGGGCACGGCCGTGTATTACTGTGGTAAAGAAGA"
 
-const test_KFV = [0.0, 0.0, 0.0, 2.0, 1.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0]
+const test_KFV = [0.0, 0.0, 0.0, 2.0, 1.0, 0.0, 0.0,
+    0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0]
 
 # mean function surprising doesnt exist in base library
 mean(vec::Vector{Float64}) = sum(vec)/length(vec)
 
 # test 
+println("KmerGMA")
 include("test_folder/test-KmerGMA.jl")
+
+println("StrobemerGMA")
 include("test_folder/test-StrobemerGMA.jl")
