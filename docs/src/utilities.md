@@ -24,6 +24,6 @@ Strobemers consist of two or more linked shorter k-mers, where the combination o
 
 The strobemers implemented are simply randstrobes with two k-mers, and in the future will be a part of a new module `StrobemerGMA`
 ```@docs
-StrobemerGMA.get_strobe_2_mer
-StrobemerGMA.ungapped_strobe_2_mer_count
+KmerGMA.get_strobe_2_mer
+KmerGMA.ungapped_strobe_2_mer_count
 ```
