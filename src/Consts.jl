@@ -8,6 +8,13 @@ const DnaSeq = Union{Seq, SubSeq}
 const DnaBits = Dict{BioSequences.DNA, UInt}
 const Kfv = Union{Vector{Int64}, Vector{Float64}}
 
+const JuliaPalette = Dict{String, String}(
+    "purple" => "#9358A4",
+    "red" => "#CB392E",
+    "green" => "#369844",
+    "blue" => "#4C64B0"
+)
+
 const NUCLEOTIDE_BITS = Dict{BioSequences.DNA, UInt}(
     DNA_A => unsigned(0),
     DNA_C => unsigned(1),

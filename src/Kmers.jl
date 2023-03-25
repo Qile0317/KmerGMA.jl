@@ -10,31 +10,32 @@ For each index, the unsigned bits of the index correspond to a binary representa
 To see what kmer each index corresponds to, see the function `as_kmer`
 """
 function kmer_count(str::DnaSeq, k::Int, Nt_bits::DnaBits = NUCLEOTIDE_BITS)
-    bins, mask, kmer = zeros(4^k), unsigned((4^k)-1), unsigned(0)
+    mask = unsigned(2 << ((2k)-1))
+    bins, kmer = zeros(mask+1), unsigned(0)
     for c in view(str, 1:k-1)
-        kmer = (kmer << 2) + Nt_bits[c]
+        kmer = (kmer << 2) | Nt_bits[c]
     end
     for c in view(str, k:length(str))
-        kmer = ((kmer << 2) & mask) + Nt_bits[c]
-        bins[kmer + 1] += 1
+        kmer = ((kmer << 2) & mask) | Nt_bits[c]
+        bins[-~kmer] += 1
     end
     return bins
 end
 
 export kmer_count
 
-# kmer counter that mutates the parameters
+# kmer counter that mutates the parameters - essential for KmerGMA
 function kmer_count!(; str::DnaSeq, k::Int, 
-    bins::Vector, mask::UInt,
+    bins::MVector, mask::UInt,
     Nt_bits::DnaBits = NUCLEOTIDE_BITS)
 
     kmer = unsigned(0)
     for c in view(str, 1:k-1)
-        kmer = (kmer << 2) + Nt_bits[c]
+        kmer = (kmer << 2) | Nt_bits[c]
     end
     for c in view(str, k:length(str))
-        kmer = ((kmer << 2) & mask) + Nt_bits[c]
-        bins[kmer + 1] += 1
+        kmer = ((kmer << 2) & mask) | Nt_bits[c]
+        bins[-~kmer] += 1
     end
 end
 
@@ -60,7 +61,7 @@ const BitNtDict = Dict{UInt, Seq}(
     unsigned(3) => dna"T")
 
 """
-    get_kmer(kmer_uint::UInt, kmer_len::Int,Nt_bits::Dict{UInt, Seq} = BitNtDict)
+    as_kmer(kmer_uint::UInt, kmer_len::Int,Nt_bits::Dict{UInt, Seq} = BitNtDict)
 
 Takes a unsigned integer representing a 2-bit-based dna kmer, and the actual length of the kmer, and returns the BioSequences dna sequence of the kmer. 
 The Nt_bits argument can be ignored. Additionally, note that both input parameters will be modified to 0 or 1.

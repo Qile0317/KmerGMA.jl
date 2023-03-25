@@ -5,7 +5,7 @@ function test_strobe_2_mer_dists(Rkv::String, num_seeds::Int64 = 42, stepsize::F
     RKV = strobe_2_mer_count(getSeq(first(reader)), s, w_min, w_max, q)
     close(reader)
 
-    scale_fac = 1/(2*log(4, length(RKV)))
+    scale_fac = 1/(2*getK(RKV))
 
     all_dists = Vector{Float64}[]
     for seed in 1:num_seeds
@@ -22,4 +22,4 @@ function test_strobe_2_mer_dists(Rkv::String, num_seeds::Int64 = 42, stepsize::F
     return all_dists
 end
 
-mutation_plot(test_strobe_2_mer_dists("test/Alp_V_ref.fasta", 300), alpha = 0.05)
+mutation_plot(test_strobe_2_mer_dists("test/Alp_V_ref.fasta", 200; s = 2, w_min = 4, w_max = 10), alpha = 0.05, color = "orange")

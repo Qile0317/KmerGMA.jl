@@ -26,9 +26,8 @@ function RSS_dist(RSS1::Seq, RSS2::Seq = HumanRSSV)
 end
 
 # evaluate if sequence is a true RSS. currently just based on hamming but other ways are possible too
+# edit distance is probably better since sometimes theres a small bit of mutation
 function is_RSS(RSS_align::AlignObj, thr::Int = 1)
     RSS_candidate = RSS_align.aln.b[cigar_to_UnitRange(RSS_align)]
     return RSS_dist(RSS_candidate, RSS_align.aln.a.seq) <= thr
 end
-
-# funnily enough, KmerGMA can technically also do this

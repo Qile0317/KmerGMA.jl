@@ -1,5 +1,5 @@
 module KmerGMA
-    using BioSequences, FASTX, Distances, Random, BioAlignments
+    using BioSequences, FASTX, Distances, Random, BioAlignments, StaticArrays
     include("Consts.jl")
     include("Kmers.jl")
     include("Consensus.jl")

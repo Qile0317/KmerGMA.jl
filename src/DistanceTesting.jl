@@ -58,10 +58,27 @@ function mutate_seq!(seq::Seq, mut_rate::Real)
     end
 end
 
+function gen_sub_vs_ref(num_seeds::Int64 = 42, stepsize::Float64 = 0.0125; RKV::String = single_ref_in_file, k = 6)
+    RKV = KmerGMA.gen_ref(RKV, k)
+    all_dists = []
+    for seed in 1:num_seeds
+        Random.seed!(seed)
+        dists = Float64[]
+        for i in 0:stepsize:1
+            new_vgene = copy(vgene)
+            mutate_seq!(new_vgene, i)
+            push!(dists, ((1/(2*k))*Distances.sqeuclidean(RKV, kmer_count(new_vgene, k))))
+            
+        end
+        push!(all_dists, dists)
+    end
+    return all_dists
+end
+
 # plot substitution testing results
-function mutation_plot(test_res::Vector{Vector{Float64}}; stepsize::Float64 = 0.0125, alpha::Float64 = 0.05)
+function mutation_plot(test_res::Vector{Vector{Float64}}; stepsize::Float64 = 0.0125, alpha::Float64 = 0.05, color = "black")
     x_axis_vec = [x for x in 0:0.0125:1]
     return scatter([x_axis_vec for _ in 1:length(test_res)], test_res,
-        alpha = alpha, color =:black, label = nothing,
+        alpha = alpha, color = color, label = nothing, markerstrokewidth = 0,
         xlabel = "mutation rate", ylabel = "distance")
 end
