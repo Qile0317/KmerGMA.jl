@@ -19,7 +19,7 @@ if test_locally
     # in progress
     include("../src/RSS.jl")
     include("../src/PairedKmers.jl")
-    include("../src/StrobemerGMA/Strobemers.jl")
+    include("../src/Strobemers.jl")
     include("../src/StrobemerGMA/MonteCarloBenchmark.jl")
     include("../src/StrobemerGMA/StrobeGenomeMiner.jl")
 
