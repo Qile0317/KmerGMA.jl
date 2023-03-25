@@ -97,6 +97,7 @@ end
 
 # everything below here is unfinished ################################
 
+"""
 # initialzies the first initial strobemer
 function initialize_first_strobe!(seq::DnaSeq, first_strobe::UInt, s::Int)
     for nt in view(seq, 1:s-1)
@@ -111,7 +112,6 @@ function initialize_window!(seq::DnaSeq, window::UInt, w_min::Int, w_max::Int)
     end
 end
 
-"""
 function strobe_2_mer_count(
     seq::DnaSeq,
     s::Int = 2,

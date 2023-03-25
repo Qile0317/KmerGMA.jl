@@ -19,7 +19,7 @@ if test_locally
     # in progress
     include("../src/RSS.jl")
     include("../src/PairedKmers.jl")
-    include("../src/Strobemers.jl")
+    include("../src/StrobemerGMA/Strobemers.jl")
     include("../src/StrobemerGMA/MonteCarloBenchmark.jl")
     include("../src/StrobemerGMA/StrobeGenomeMiner.jl")
 
@@ -44,8 +44,8 @@ const test_KFV = [0.0, 0.0, 0.0, 2.0, 1.0, 0.0, 0.0,
 mean(vec::Vector{Float64}) = sum(vec)/length(vec)
 
 # test 
-println("KmerGMA")
+println("%%%%%%%%%% KmerGMA %%%%%%%%%%")
 include("test_folder/test-KmerGMA.jl")
 
-println("StrobemerGMA")
+println("%%%%%%%%%% StrobemerGMA %%%%%%%%%%")
 include("test_folder/test-StrobemerGMA.jl")

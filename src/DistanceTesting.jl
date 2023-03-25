@@ -61,7 +61,9 @@ returns a new biosequence where `mute_rate` portion of the input biosequence `se
 The `mut_rate` should be between 0 and 1.
 """
 function mutate_seq(seq::Seq, mut_rate::Real)
-    newseq = copy(seq); return mutate_seq!(newseq, mut_rate)
+    newseq = copy(seq)
+    mutate_seq!(newseq, mut_rate)
+    return newseq
 end
 
 function gen_sub_vs_ref(num_seeds::Int64 = 42, stepsize::Float64 = 0.0125; k = 6, RKV::String)
