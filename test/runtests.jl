@@ -219,7 +219,7 @@ end
             thr = 10, do_align = false, do_return_dists = true,
             resultVec = res, dist_vec = dist_vec)
 
-        @test length(dist_vec) == 484127
+        @test length(dist_vec) == 484111
         @test round(mean(dist_vec)) == 65 # not sure why kmer distances changed so much, need to investigate
         @test length(res) == 1
         @test FASTA.description(res[1]) == "AM773548.1 | dist = 8.35 | MatchPos = 6801:7189 | GenomePos = 444023 | Len = 388"

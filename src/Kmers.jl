@@ -10,7 +10,7 @@ For each index, the unsigned bits of the index correspond to a binary representa
 To see what kmer each index corresponds to, see the function `as_kmer`
 """
 function kmer_count(str::DnaSeq, k::Int, Nt_bits::DnaBits = NUCLEOTIDE_BITS)
-    mask = unsigned(2 << ((2k)-1))
+    mask = unsigned((2 << ((2 * k) - 1)) - 1)
     bins, kmer = zeros(mask+1), unsigned(0)
     for c in view(str, 1:k-1)
         kmer = (kmer << 2) | Nt_bits[c]
@@ -24,9 +24,11 @@ end
 
 export kmer_count
 
+const BinInput = Union{MVector, Vector{Int}, Vector{Float64}}
+
 # kmer counter that mutates the parameters - essential for KmerGMA
 function kmer_count!(; str::DnaSeq, k::Int, 
-    bins::MVector, mask::UInt,
+    bins::BinInput, mask::UInt,
     Nt_bits::DnaBits = NUCLEOTIDE_BITS)
 
     kmer = unsigned(0)

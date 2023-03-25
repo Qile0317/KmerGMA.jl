@@ -18,20 +18,16 @@ using BioSequences, FASTX, Distances, BioAlignments, Random, StaticArrays
     do_return_dists::Bool = false, 
     do_return_align::Bool = false,
     get_hit_loci::Bool = false,
-    curr_kmer_freq::Vector{Int} = zeros(Int, 4096),
     dist_vec = Float64[], result_align_vec = [], hit_loci_vec = Int[],
     genome_pos::Int = 0, resultVec::Vector{FASTA.Record} = FASTA.Record[])
 
     # convert to static vector for speed improvement
-    refVec = SVector{2 << ((2*k)-1)}(refVec)
-    #curr_kmer_freq = MVector{2 << ((2*k)-1)}(curr_kmer_freq) # using Static array should help performance
+    refVec = SVector{2 << ((2*k)-1)}(refVec) # takes ab 6 secs
+    curr_kmer_freq = zeros(Int, 2 << ((2*k)-1)) # seems like MVector is slower
 
     open(FASTX.FASTA.Reader, genome_path) do reader 
-        for record in reader 
-            seq::Seq = getSeq(record)
-            goal_ind::Int64 = 0
+        for record in reader; seq::Seq = getSeq(record)
 
-            #edge case
             sequence_length::Int = FASTX.FASTA.seqsize(record)
             if sequence_length < windowsize; continue end
 
@@ -43,26 +39,21 @@ using BioSequences, FASTX, Distances, BioAlignments, Random, StaticArrays
             kmerDist::Float64 = ScaleFactor * 0.5 *
                 Distances.sqeuclidean(refVec, curr_kmer_freq)
 
-            #initializing variables
-            CMI, stop, currminim = 2, true, kmerDist
-
-            left_kmer = unsigned(0)
-            for nt in view(seq, 1:k-1)
+            left_kmer = unsigned(0); for nt in view(seq, 1:k-1)
                 left_kmer = (left_kmer << 2) | Nt_bits[nt]
             end
 
-            right_kmer = unsigned(0)
-            for nt in view(seq, windowsize-k+1:windowsize-1)
+            right_kmer = unsigned(0); for nt in view(seq, windowsize-k+1:windowsize-1)
                 right_kmer = (right_kmer << 2) | Nt_bits[nt]
             end
+
+            CMI, stop, currminim, i, goal_ind = 2, true, kmerDist, 0, 0
             
-            i::Int = 0
             for nt in view(seq, k:sequence_length-windowsize+1); i += 1
-                # first kmer
+                
                 left_kmer::UInt = ((left_kmer << 2) & mask) | Nt_bits[nt]
                 left_ind = left_kmer + 1
 
-                # last kmer + 1bp
                 @inbounds right_kmer::UInt = ((right_kmer << 2) & mask) | Nt_bits[seq[i+windowsize-1]]
                 right_ind = right_kmer + 1
 
