@@ -73,7 +73,7 @@ function findGenes(; genome_path::String, ref_path::String,
     
     hit_vector = FASTX.FASTA.Record[]
     dist_vec, hit_loci_vec, alignment_vec = Float64[], Int[], []  
-    curr_KFV, cumulative_length_in_genome = zeros(4^k), 0
+    cumulative_length_in_genome = 0
 
     if verbose; @info "initializing iteration..." end 
     ac_gma_testing!(
@@ -83,7 +83,7 @@ function findGenes(; genome_path::String, ref_path::String,
         do_align = do_align, do_return_dists = do_return_dists,
         do_return_align = do_return_align, get_hit_loci = do_return_hit_loci,
 
-        curr_kmer_freq = curr_KFV, dist_vec = dist_vec,
+        dist_vec = dist_vec,
         result_align_vec = alignment_vec,
         hit_loci_vec = hit_loci_vec, genome_pos = cumulative_length_in_genome,
         resultVec = hit_vector)
@@ -160,6 +160,7 @@ function findGenes_cluster_mode(; genome_path::String, ref_path::String,
 
     RVs, windowsizes, consensus_refseqs, invalids = cluster_ref_API(ref_path, k; cutoffs = cluster_cutoffs)
     RVs, windowsizes, consensus_refseqs = eliminate_null_params(RVs, windowsizes, consensus_refseqs, invalids)
+    invalids = nothing
 
     if k >= minimum(windowsizes); error("some/all of the average reference sequence lengths exceeds/is equal to the chosen kmer length $k. please reduce k. ") end
 
@@ -188,7 +189,7 @@ function findGenes_cluster_mode(; genome_path::String, ref_path::String,
     Omn_KmerGMA!(genome_path = genome_path, refVecs = RVs,
         windowsizes = windowsizes, consensus_seqs = consensus_refseqs,
         resultVec = hit_vector, k = k,
-        ScaleFactor = 1/k, mask=unsigned(4^k -1),
+        ScaleFactor = 1/k, mask = unsigned(4^k -1),
         thr_vec = KmerDistThrs,
         buff = buffer, align_hits = do_align, get_hit_loci = do_return_hit_loci, 
         hit_loci_vec = hit_loci_vec,

@@ -3,7 +3,7 @@ using BioAlignments, FASTX
 # alot of the subprocesses can be written into functions for readability but for performance sake everything is kept in the function
 # a lot of the values here initialize for k = 6, purely for the sake of more concisce testing.
 
-function Omn_KmerGMA!(;
+@inline function Omn_KmerGMA!(;
     genome_path::String,
     refVecs::Vector{Vector{Float64}},
     windowsizes::Vector{Int64}, 
@@ -25,11 +25,17 @@ function Omn_KmerGMA!(;
     do_return_dists::Bool = false,
     dist_vec_vec::Vector{Vector{Float64}} = [Float64[] for _ in 1:6])
 
+    # convert refVecs to static vectors
+    vec_len = 2 << ((2*k)-1)
+    for refVec in refVecs
+        refVec = SVector{vec_len}(refVec) 
+    end
+
     # setup all variables
     len_KFVs::Int64 = length(windowsizes)
     kmerDist_vec = Float64[0 for _ in 1:len_KFVs]
-    all_curr_kmer_freq = [zeros(4^k) for _ in 1:len_KFVs]
-    curr_mins = Float64[Float64(100) for _ in 1:len_KFVs]
+    all_curr_kmer_freq = [zeros(vec_len) for _ in 1:len_KFVs]
+    curr_mins = Float64[Float64(10000) for _ in 1:len_KFVs]
     CMIs = [1 for _ in 1:len_KFVs]
     stops = [true for _ in 1:len_KFVs]
     maxws = maximum(windowsizes)
@@ -40,10 +46,9 @@ function Omn_KmerGMA!(;
         for record in reader 
             # Operation on first window 
             seq::Seq = getSeq(record)
-            sequence_length = length(seq)
-            prev_hit_range = 0:0 # super important to avoid duplicate hits
+            sequence_length::Int = FASTX.FASTA.seqsize(record)
+            prev_hit_range = 0:0 
             
-            # initialize vars for the first window
             for ind in 1:len_KFVs
                 if sequence_length < windowsizes[ind]; continue end #! need to sort out 
                 
@@ -52,50 +57,51 @@ function Omn_KmerGMA!(;
                 kmer_count!(str = view(seq, 1:windowsizes[ind]), k = k,
                 bins = all_curr_kmer_freq[ind], mask = mask)
                 
-                kmerDist_vec[ind] = curr_mins[ind] = (1/(2*k))*Distances.sqeuclidean(refVecs[ind], all_curr_kmer_freq[ind])
+                kmerDist_vec[ind] = curr_mins[ind] = ScaleFactor * 0.5 *
+                    Distances.sqeuclidean(refVecs[ind], all_curr_kmer_freq[ind])
 
                 CMIs[ind], stops[ind] = 1, true
 
                 right_kmer_vec[ind] = unsigned(0)
                 for c in view(seq, windowsizes[ind]-k+1:windowsizes[ind]-1) # here is the problem
-                    right_kmer_vec[ind] = (right_kmer_vec[ind] << 2) + Nt_bits[c]
+                    right_kmer_vec[ind] = (right_kmer_vec[ind] << 2) | Nt_bits[c]
                 end
             end
 
             left_kmer = unsigned(0)
             for c in view(seq, 1:k-1)
-                left_kmer = (left_kmer << 2) + Nt_bits[c]
+                left_kmer = (left_kmer << 2) | Nt_bits[c]
             end
 
             # iteration over the current record
             for i in 1:(sequence_length-maxws)
 
                 # change left kmer
-                left_kmer = ((left_kmer << 2) & mask) + Nt_bits[seq[i+k-1]]
-                left_ind = 1+left_kmer
+                @inbounds left_kmer = ((left_kmer << 2) & mask) | Nt_bits[seq[i+k-1]]
+                left_ind = 1 + left_kmer
 
                 for ind in 1:len_KFVs
                     # change right kmer
-                    right_kmer_vec[ind] = ((right_kmer_vec[ind] << 2) & mask) + Nt_bits[seq[i+windowsizes[ind]-1]]
-                    right_ind = 1 + right_kmer_vec[ind]
+                    @inbounds right_kmer_vec[ind] = ((right_kmer_vec[ind] << 2) & mask) | Nt_bits[seq[i+windowsizes[ind]-1]]
+                    @inbounds right_ind = 1 + right_kmer_vec[ind]
 
                     # simplified operation to update the distance
-                    kmerDist_vec[ind] += ScaleFactor*(
+                    @inbounds kmerDist_vec[ind] += ScaleFactor*(1 +
                         all_curr_kmer_freq[ind][right_ind] + refVecs[ind][left_ind] -
-                        refVecs[ind][right_ind] - all_curr_kmer_freq[ind][left_ind] + 1)
+                        refVecs[ind][right_ind] - all_curr_kmer_freq[ind][left_ind])
 
-                    all_curr_kmer_freq[ind][left_ind] -= 1
-                    all_curr_kmer_freq[ind][right_ind] += 1
+                    @inbounds all_curr_kmer_freq[ind][left_ind] -= 1
+                    @inbounds all_curr_kmer_freq[ind][right_ind] += 1
                 
-                    kmerDist = kmerDist_vec[ind]
+                    @inbounds kmerDist = kmerDist_vec[ind]
                     if do_return_dists; push!(dist_vec_vec[ind], kmerDist) end 
 
                     # minima finder (worse matches may sometimes be used but should be fine)
-                    if kmerDist < thr_vec[ind]
-                        if kmerDist < curr_mins[ind]
-                            curr_mins[ind] = kmerDist
-                            CMIs[ind] = i
-                            stops[ind] = false
+                    @inbounds if kmerDist < thr_vec[ind]
+                        @inbounds if kmerDist < curr_mins[ind]
+                            @inbounds curr_mins[ind] = kmerDist
+                            @inbounds CMIs[ind] = i
+                            @inbounds stops[ind] = false
                         end
                     
                     # process actual hits

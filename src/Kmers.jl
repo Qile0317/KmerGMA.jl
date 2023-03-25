@@ -54,6 +54,8 @@ end
 
 export kmer_dist
 
+#TODO: look into corrected kmer distance
+
 # code below are for user convenience with kmer and bit conversions
 
 const BitNtDict = Dict{UInt, Seq}(

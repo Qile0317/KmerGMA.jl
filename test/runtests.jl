@@ -1,4 +1,4 @@
-using Test, BioSequences, FASTX, Random, BioAlignments, Distances
+using Test, BioSequences, FASTX, Random, BioAlignments, Distances, StaticArrays
 
 # for devs: if testing the script on your own machine, set the following variable to true. Otherwise must set to false when pushing
 test_locally = false

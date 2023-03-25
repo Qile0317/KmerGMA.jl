@@ -21,7 +21,7 @@ using BioSequences, FASTX, Distances, BioAlignments, Random, StaticArrays
     dist_vec = Float64[], result_align_vec = [], hit_loci_vec = Int[],
     genome_pos::Int = 0, resultVec::Vector{FASTA.Record} = FASTA.Record[])
 
-    # convert to static vector for speed improvement
+    # convert refVec to static vector for speed improvement
     refVec = SVector{2 << ((2*k)-1)}(refVec) # takes ab 6 secs
     curr_kmer_freq = zeros(Int, 2 << ((2*k)-1)) # seems like MVector is slower
 
