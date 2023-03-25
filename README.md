@@ -10,6 +10,7 @@ The approach was developed to predict novel VDJ alelles in genomes based on sets
 ## Package Features
 - Homology searching of 1 query sequence or a collection of queries to a local database(s)
 - Find exact gene matches in a genome from a query sequence
+- Many subsequence counting utilities for kmers, paired kmers, and strobemers (https://doi.org/10.1101/gr.275648.121)
 
 ## Status
 The main functionalities of the package are all working but not finalized. There may be lots of rapid changes and new releases.

@@ -22,4 +22,4 @@ function test_strobe_2_mer_dists(Rkv::String, num_seeds::Int64 = 42, stepsize::F
     return all_dists
 end
 
-mutation_plot(test_strobe_2_mer_dists("test/Alp_V_ref.fasta", 200; s = 2, w_min = 4, w_max = 10), alpha = 0.05, color = "orange")
+# mutation_plot(test_strobe_2_mer_dists("test/Alp_V_ref.fasta", 200; s = 2, w_min = 4, w_max = 10), alpha = 0.05, color = "orange")

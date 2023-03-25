@@ -4,16 +4,43 @@
 
 using Plots, Random, Distances
 
+export randstrobe_score
+export get_strobe_2_mer
+export ungapped_strobe_2_mer_count
+
+# convinienice strobemer hashing function (should use uint and bitwise ops in the future)
 function randstrobe_score(s1::DnaSeq, s2::DnaSeq, q::Int)
     return (as_UInt(s1) + as_UInt(s2)) % q
 end
 
-# can be generalized
+"""
+    get_strobe_2_mer(
+        seq::LongSequence{DNAAlphabet{4}},
+        s::Int = 2,
+        w_min::Int = 3,
+        w_max::Int = 5,
+        q::Int = 5;
+        withGap::Bool = true) 
+
+Get the randstrobe that consists of two kmers of the current sequence `seq`. 
+The `withGap` named argument indicates whether to return the strobemer with
+sequence gaps or just as a regular kmer with all gaps removed
+
+...
+# Strobemer parameters
+- `s::Int = 2`: length of the kmers that consists of the strobemer.
+- `w_min::Int = 3`: the start of the window to obtain the second kmer from.
+- `w_max::Int = 5`: the end of the window to obtain the second kmer from.
+- `q::Int = 5`: the prime number that the randstrobe hashing function should use. 
+...
+
+It is recommended to keep all optional strobemer parameters as is
+"""
 function get_strobe_2_mer(
     seq::DnaSeq, s::Int = 2,
     w_min::Int = 3, w_max::Int = 5,
-    q::Int = 5, # q should be prime
-    ; withGap::Bool = false) 
+    q::Int = 5;
+    withGap::Bool = true) 
 
     first_strobe = Seq(seq[1:s])
     min_score::Int = 2 << 63
@@ -31,6 +58,45 @@ function get_strobe_2_mer(
     return first_strobe * dna"-"^(min_ind-s-1) * Seq(seq[min_ind:min_ind+s-1]) * dna"-"^(length(seq)-min_ind-s+1)
 end
 
+"""
+    ungapped_strobe_2_mer_count(
+        seq::DnaSeq;
+        s::Int = 2,
+        w_min::Int = 3,
+        w_max::Int = 5,
+        q::Int = 5)
+
+Get the ungapped randstrobe (two kmers of the current sequence `seq`) frequency vector. 
+The vector is ``4^{2s}`` long, where each index corresponds to the strobemer with gaps removed.
+So the strobemer `AC--GT--` would correspond to the index corresponding to `ACGT`. To convert
+from index to the ungapped strobemer, see `KmerGMA.as_kmer`
+
+...
+# Strobemer parameters
+- `s::Int = 2`: length of the kmers that consists of the strobemer.
+- `w_min::Int = 3`: the start of the window to obtain the second kmer from.
+- `w_max::Int = 5`: the end of the window to obtain the second kmer from.
+- `q::Int = 5`: the prime number that the randstrobe hashing function should use. 
+...
+
+It is currently the responsibility of the user to ensure that all parameters do not conflict with eachother 
+"""
+function ungapped_strobe_2_mer_count(
+    seq::DnaSeq; s::Int = 2,
+    w_min::Int = 3, w_max::Int = 5,
+    q::Int = 5)
+
+    k = w_max+s-1
+    bins = zeros(4^k)
+    for i in 1:length(seq)-k+1
+        strobemer = get_strobe_2_mer(view(seq,i:i+k-1), s, w_min, w_max, q; withGap = false)
+        bins[as_UInt(strobemer) + 1] += 1
+    end
+    return bins
+end
+
+# everything below here is unfinished ################################
+
 # initialzies the first initial strobemer
 function initialize_first_strobe!(seq::DnaSeq, first_strobe::UInt, s::Int)
     for nt in view(seq, 1:s-1)
@@ -45,7 +111,7 @@ function initialize_window!(seq::DnaSeq, window::UInt, w_min::Int, w_max::Int)
     end
 end
 
-""" #UNFINISHED BIT BASED COUNTER
+"""
 function strobe_2_mer_count(
     seq::DnaSeq,
     s::Int = 2,
@@ -67,13 +133,8 @@ function strobe_2_mer_count(
     end
     return bins
 end
-"""
 
-function dist(kfv1::Vector{Float64}, kfv2::Vector{Float64})
-    return (1/(2*(log(4, length(kfv1)))))*Distances.sqeuclidean(kfv1, kfv2)
-end
-
-"""
+# testing
 Random.seed!(42)
 vgene = dna"caggtccagctggtgcagccaggggctgagctgaggaagcctggggctttgctgaaggtctcctgcaaggcttctggatacaccttcaccagctactacatagactgggtgcgacaggcccctggacaagggcttgggtgggtgggaagaattgaccctgaagacggtggcacaaattatgcacagaagttccagggcagagtcaccttgactgcagacacgtccaccagcacagcctacgtggagctgagcagtctgagatctgaggacacggccgtgtgttactgtgtgagaga"
 vgene_10_div = mutate_seq(vgene, 0.3)
@@ -83,6 +144,6 @@ seq1 = strobe_2_mer_count(vgene)
 seq2 = strobe_2_mer_count(vgene_10_div)
 rand_seq3 = strobe_2_mer_count(rand_seq)
 plot(seq1); plot!(seq2)
-dist(seq1,seq2)
+kmer_dist(seq1,seq2)
 dist(seq1, rand_seq3)
 """

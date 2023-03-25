@@ -44,6 +44,12 @@ end
 export kmer_count!
 
 # pairwise kmer distance of two sequences, not optimized for performance
+"""
+    kmer_dist(seq1, seq2, k::Int, Nt_bits::DnaBits = NUCLEOTIDE_BITS)
+
+returns the kmer distance between two biosequences `seq1` and `seq2`, where `k` is the kmer length.
+Users can ignore the last argument.
+"""
 function kmer_dist(seq1, seq2, k::Int, Nt_bits::DnaBits = NUCLEOTIDE_BITS)
     return (1/(2*k))*Distances.sqeuclidean(kmer_count(seq1, k, Nt_bits), kmer_count(seq2, k, Nt_bits))
 end
@@ -65,12 +71,12 @@ const BitNtDict = Dict{UInt, Seq}(
     unsigned(3) => dna"T")
 
 """
-    as_kmer(kmer_uint::UInt, kmer_len::Int,Nt_bits::Dict{UInt, Seq} = BitNtDict)
+    as_kmer(kmer_uint::Integer, kmer_len::Int,Nt_bits::Dict{UInt, Seq} = BitNtDict)
 
-Takes a unsigned integer representing a 2-bit-based dna kmer, and the actual length of the kmer, and returns the BioSequences dna sequence of the kmer. 
+Takes a positive integer representing a 2-bit-based dna kmer, and the actual length of the kmer, and returns the BioSequences dna sequence of the kmer. 
 The Nt_bits argument can be ignored. Additionally, note that both input parameters will be modified to 0 or 1.
 """
-function as_kmer(kmer_uint::UInt, kmer_len::Int, Nt_bits::Dict{UInt, Seq} = BitNtDict)
+function as_kmer(kmer_uint::Integer, kmer_len::Int, Nt_bits::Dict{UInt, Seq} = BitNtDict)
     output_seq = dna""
     while kmer_len > 0 ; curr_bit_nt = unsigned(0)
         for _ in 1:2
