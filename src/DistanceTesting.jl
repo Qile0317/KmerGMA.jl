@@ -1,6 +1,8 @@
-using BioSequences, Random
+using BioSequences, Random, Plots
 
 export estimate_optimal_threshold
+export mutate_seq
+export mutate_seq!
 
 # looks at average distance of random sequence to the RV and returns value just below
 function estimate_optimal_threshold(RV::Kfv, average_length::Int64;
@@ -37,28 +39,32 @@ const mutation_dict = Dict{DNA, Vector{DNA}}(
     DNA_A => DNA[DNA_C, DNA_G, DNA_T],
     DNA_C => DNA[DNA_A, DNA_G, DNA_T],
     DNA_G => DNA[DNA_C, DNA_A, DNA_T],
-    DNA_T => DNA[DNA_C, DNA_G, DNA_A]
-)
+    DNA_T => DNA[DNA_C, DNA_G, DNA_A])
 
-function mutate_seq(seq::Seq, mut_rate::Real)
-    newseq = copy(seq)
-    for i in 1:length(seq)
-        if rand(1)[1] <= mut_rate
-            newseq[i] = rand(mutation_dict[seq[i]])
-        end
-    end
-    return newseq
-end
+"""
+    mutate_seq!(seq::LongSequence{DNAAlphabet{4}}, mut_rate::Real)
 
+randomly subsitutes `mute_rate` portion of the input biosequence `seq` in place. 
+"""
 function mutate_seq!(seq::Seq, mut_rate::Real)
-    for i in 1:length(seq)
+    for i in eachindex(seq)
         if rand(1)[1] <= mut_rate
             seq[i] = rand(mutation_dict[seq[i]])
         end
     end
 end
 
-function gen_sub_vs_ref(num_seeds::Int64 = 42, stepsize::Float64 = 0.0125; RKV::String = single_ref_in_file, k = 6)
+"""
+    mutate_seq(seq::LongSequence{DNAAlphabet{4}}, mut_rate::Real)
+
+returns a new biosequence where `mute_rate` portion of the input biosequence `seq` are substituted to a different base pair.
+The `mut_rate` should be between 0 and 1.
+"""
+function mutate_seq(seq::Seq, mut_rate::Real)
+    newseq = copy(seq); return mutate_seq!(newseq, mut_rate)
+end
+
+function gen_sub_vs_ref(num_seeds::Int64 = 42, stepsize::Float64 = 0.0125; k = 6, RKV::String)
     RKV = KmerGMA.gen_ref(RKV, k)
     all_dists = []
     for seed in 1:num_seeds

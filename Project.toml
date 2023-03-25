@@ -4,7 +4,7 @@ keywords = ["kmer", "Vgene", "Homology", "BLAST"]
 license = "MIT"
 desc = "A kmer-based homology searcher"
 authors = ["Qile Yang", "Benjamin Murrell"]
-version = "0.5.0"
+version = "0.5.1"
 
 [deps]
 BioAlignments = "00701ae9-d1dc-5365-b64a-a3a3ebf5695e"

@@ -27,3 +27,9 @@ The strobemers implemented are simply randstrobes with two k-mers, and in the fu
 KmerGMA.get_strobe_2_mer
 KmerGMA.ungapped_strobe_2_mer_count
 ```
+
+## sequence divergence (work in progress)
+```@docs
+KmerGMA.mutate_seq
+KmerGMA.mutate_seq!
+```
