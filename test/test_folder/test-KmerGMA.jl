@@ -155,8 +155,8 @@
                 resultVec = res)
 
             @test length(res) == 8
-            @test FASTA.description(res[3]) == "JQ684648.1 | dist = 10.88 | MatchPos = 20374:20762 | GenomePos = 0 | Len = 388"
-            @test FASTA.description(res[end-2]) == "AM773548.1 | dist = 8.35 | MatchPos = 6801:7189 | GenomePos = 444023 | Len = 388"
+            @test FASTA.description(res[3]) == "JQ684648.1 | dist = 9.21 | MatchPos = 20374:20762 | GenomePos = 0 | Len = 388"
+            @test FASTA.description(res[end-2]) == "AM773548.1 | dist = 8.1 | MatchPos = 6801:7189 | GenomePos = 444023 | Len = 388"
         end
 
         @testset "do_align = true, get_hit_loci = true" begin
@@ -170,9 +170,9 @@
 
             @test length(res) == 7
             @test hit_vec == [8543, 20425, 221912, 234018, 450875, 467930, 477868]
-            @test FASTA.description(res[2]) == "JQ684648.1 | dist = 10.88 | MatchPos = 20425:20723 | GenomePos = 0 | Len = 298"
-            @test FASTA.description(res[end-2]) == "AM773548.1 | dist = 8.35 | MatchPos = 6852:7150 | GenomePos = 444023 | Len = 298"
-            @test FASTA.description(res[6]) == "AM773548.1 | dist = 26.91 | MatchPos = 23907:24211 | GenomePos = 444023 | Len = 304"
+            @test FASTA.description(res[2]) == "JQ684648.1 | dist = 9.21 | MatchPos = 20425:20723 | GenomePos = 0 | Len = 298"
+            @test FASTA.description(res[end-2]) == "AM773548.1 | dist = 8.1 | MatchPos = 6852:7150 | GenomePos = 444023 | Len = 298"
+            @test FASTA.description(res[6]) == "AM773548.1 | dist = 24.87 | MatchPos = 23907:24211 | GenomePos = 444023 | Len = 304"
         end
 
         @testset "do_return_dists = true, buff = 0, thr = 10, do_align = false" begin
@@ -186,9 +186,11 @@
                 resultVec = res, dist_vec = dist_vec)
 
             @test length(dist_vec) == 484111
-            @test round(mean(dist_vec)) == 65 # not sure why kmer distances changed so much, need to investigate
-            @test length(res) == 1
-            @test FASTA.description(res[1]) == "AM773548.1 | dist = 8.35 | MatchPos = 6801:7189 | GenomePos = 444023 | Len = 388"
+            @test round(mean(dist_vec)) == 46
+
+            @test length(res) == 3
+            @test FASTA.description(res[1]) == "JQ684648.1 | dist = 9.21 | MatchPos = 20374:20762 | GenomePos = 0 | Len = 388"
+            @test FASTA.description(res[end]) == "AM773548.1 | dist = 8.1 | MatchPos = 6801:7189 | GenomePos = 444023 | Len = 388"
         end
     end
 
@@ -201,9 +203,9 @@
             Omn_KmerGMA!(genome_path = test_mini_genome, refVecs = rvs, windowsizes = ws, consensus_seqs = cons, resultVec = test_res,
                         buff = 200, thr_vec = [37,33,38,34,28,27])
             @test length(test_res) == 3
-            @test FASTA.description(test_res[1]) == "AM773548.1 | Dist = 38.17 | KFV = 3 | MatchPos = 6852:7139 | GenomePos = 0 | Len = 287"
-            @test FASTA.description(test_res[2]) ==  "AM773548.1 | Dist = 28.02 | KFV = 5 | MatchPos = 23907:24199 | GenomePos = 0 | Len = 292"
-            @test FASTA.description(test_res[3]) == "AM773548.1 | Dist = 38.17 | KFV = 3 | MatchPos = 33845:34132 | GenomePos = 0 | Len = 287"
+            @test FASTA.description(test_res[1]) == "AM773548.1 | Dist = 38.0 | KFV = 3 | MatchPos = 6852:7139 | GenomePos = 0 | Len = 287"
+            @test FASTA.description(test_res[2]) == "AM773548.1 | Dist = 34.02 | KFV = 4 | MatchPos = 23907:24198 | GenomePos = 0 | Len = 291"
+            @test FASTA.description(test_res[3]) == "AM773548.1 | Dist = 37.03 | KFV = 1 | MatchPos = 33845:34091 | GenomePos = 0 | Len = 246" # ugh this got screwed up
         end
     end
 
@@ -211,16 +213,16 @@
         @testset "findGenes" begin
             a = findGenes(genome_path = test_mini_genome, ref_path = tf, verbose = false)[1]
             @test length(a) == 3
-            @test FASTA.description(a[1]) == "AM773548.1 | dist = 8.35 | MatchPos = 6852:7150 | GenomePos = 0 | Len = 298"
-            @test FASTA.description(a[2]) == "AM773548.1 | dist = 26.91 | MatchPos = 23907:24211 | GenomePos = 0 | Len = 304"
-            @test FASTA.description(a[3]) == "AM773548.1 | dist = 13.57 | MatchPos = 33845:34143 | GenomePos = 0 | Len = 298"
+            @test FASTA.description(a[1]) == "AM773548.1 | dist = 8.1 | MatchPos = 6852:7150 | GenomePos = 0 | Len = 298"
+            @test FASTA.description(a[2]) == "AM773548.1 | dist = 24.87 | MatchPos = 23907:24211 | GenomePos = 0 | Len = 304"
+            @test FASTA.description(a[3]) == "AM773548.1 | dist = 10.99 | MatchPos = 33845:34143 | GenomePos = 0 | Len = 298"
         end
         
         @testset "findGenes_cluster_mode" begin
             a = findGenes_cluster_mode(genome_path = test_mini_genome, ref_path = tf, verbose = false)[1]
             @test length(a) == 3
-            @test FASTA.description(a[1]) == "AM773548.1 | Dist = 40.83 | KFV = 3 | MatchPos = 6852:7139 | GenomePos = 0 | Len = 287"
-            @test FASTA.description(a[2]) == "AM773548.1 | Dist = 29.76 | KFV = 6 | MatchPos = 23907:24211 | GenomePos = 0 | Len = 304"
+            @test FASTA.description(a[1]) == "AM773548.1 | Dist = 29.26 | KFV = 5 | MatchPos = 6857:7146 | GenomePos = 0 | Len = 289"
+            @test FASTA.description(a[2]) == "AM773548.1 | Dist = 37.97 | KFV = 1 | MatchPos = 23907:24200 | GenomePos = 0 | Len = 293"
             @test FASTA.description(a[3]) == "AM773548.1 | Dist = 40.83 | KFV = 3 | MatchPos = 33845:34132 | GenomePos = 0 | Len = 287"
         end
 

@@ -60,11 +60,11 @@ using BioAlignments, FASTX
                 kmerDist_vec[ind] = curr_mins[ind] = ScaleFactor * 0.5 *
                     Distances.sqeuclidean(refVecs[ind], all_curr_kmer_freq[ind])
 
-                CMIs[ind], stops[ind] = 1, true
+                @inbounds CMIs[ind], stops[ind] = 1, true
 
-                right_kmer_vec[ind] = unsigned(0)
-                for c in view(seq, windowsizes[ind]-k+1:windowsizes[ind]-1) # here is the problem
-                    right_kmer_vec[ind] = (right_kmer_vec[ind] << 2) | Nt_bits[c]
+                @inbounds right_kmer_vec[ind] = unsigned(0)
+                for c in view(seq, windowsizes[ind]-k+2:windowsizes[ind])
+                    @inbounds right_kmer_vec[ind] = (right_kmer_vec[ind] << 2) | Nt_bits[c]
                 end
             end
 
@@ -74,24 +74,26 @@ using BioAlignments, FASTX
             end
 
             # iteration over the current record
-            for i in 1:(sequence_length-maxws)
+            i = 0; for nt in view(seq, k:sequence_length-maxws+1); i += 1
 
                 # change left kmer
-                @inbounds left_kmer = ((left_kmer << 2) & mask) | Nt_bits[seq[i+k-1]]
+                @inbounds left_kmer = ((left_kmer << 2) & mask) | Nt_bits[nt]
                 left_ind = 1 + left_kmer
 
                 for ind in 1:len_KFVs
                     # change right kmer
-                    @inbounds right_kmer_vec[ind] = ((right_kmer_vec[ind] << 2) & mask) | Nt_bits[seq[i+windowsizes[ind]-1]]
+                    @inbounds right_kmer_vec[ind] = ((right_kmer_vec[ind] << 2) & mask) | Nt_bits[seq[i+windowsizes[ind]]]
                     @inbounds right_ind = 1 + right_kmer_vec[ind]
 
                     # simplified operation to update the distance
-                    @inbounds kmerDist_vec[ind] += ScaleFactor*(1 +
-                        all_curr_kmer_freq[ind][right_ind] + refVecs[ind][left_ind] -
-                        refVecs[ind][right_ind] - all_curr_kmer_freq[ind][left_ind])
+                    if left_ind != right_ind
+                        @inbounds kmerDist_vec[ind] += ScaleFactor*(1 +
+                            all_curr_kmer_freq[ind][right_ind] + refVecs[ind][left_ind] -
+                            refVecs[ind][right_ind] - all_curr_kmer_freq[ind][left_ind])
 
-                    @inbounds all_curr_kmer_freq[ind][left_ind] -= 1
-                    @inbounds all_curr_kmer_freq[ind][right_ind] += 1
+                        @inbounds all_curr_kmer_freq[ind][left_ind] -= 1
+                        @inbounds all_curr_kmer_freq[ind][right_ind] += 1
+                    end
                 
                     @inbounds kmerDist = kmerDist_vec[ind]
                     if do_return_dists; push!(dist_vec_vec[ind], kmerDist) end 
@@ -148,6 +150,8 @@ using BioAlignments, FASTX
 end
 
 export Omn_KmerGMA!
+
+# an alternative is to have the same windowsize for all kmers so the curr kmer freq and right kmer will always be the same. 
 
 #write_results(test_res, "new_testing.fasta") # took 6*50 = 300 seconds as expected, for 6 subsets, which is exactly 6 times longer than the O(n) version
 

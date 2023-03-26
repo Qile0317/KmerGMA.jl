@@ -1,6 +1,7 @@
 using BioSequences, FASTX, Distances, BioAlignments, Random, StaticArrays
 
 # lots of memory is consumed because the records become stored in memory
+# gotta check the indexing for the left and right kmers...
 
 @inline function ac_gma_testing!(;
     genome_path::String,
@@ -12,7 +13,7 @@ using BioSequences, FASTX, Distances, BioAlignments, Random, StaticArrays
     buff::Int64 = 50,
     mask::UInt64 = unsigned(4095), 
     Nt_bits::DnaBits = NUCLEOTIDE_BITS,
-    ScaleFactor::Float64 = 0.1666666666666666666666666666666666666666666666667, # 1/k, NOT 1/2k !!
+    ScaleFactor::Float64 = 0.166666666666666666666666666666666666666666666667,
     do_align::Bool = true,
     score_model::AffineGapScoreModel{Int64} = AffineGapScoreModel(EDNAFULL, gap_open=-69, gap_extend=-1),
     do_return_dists::Bool = false, 
@@ -22,7 +23,7 @@ using BioSequences, FASTX, Distances, BioAlignments, Random, StaticArrays
     genome_pos::Int = 0, resultVec::Vector{FASTA.Record} = FASTA.Record[])
 
     # convert refVec to static vector for speed improvement
-    refVec = SVector{2 << ((2*k)-1)}(refVec) # takes ab 6 secs
+    refVec = SVector{2 << ((2*k)-1)}(refVec) # takes ab 6 ms
     curr_kmer_freq = zeros(Int, 2 << ((2*k)-1)) # seems like MVector is slower
 
     open(FASTX.FASTA.Reader, genome_path) do reader 
@@ -43,7 +44,7 @@ using BioSequences, FASTX, Distances, BioAlignments, Random, StaticArrays
                 left_kmer = (left_kmer << 2) | Nt_bits[nt]
             end
 
-            right_kmer = unsigned(0); for nt in view(seq, windowsize-k+1:windowsize-1)
+            right_kmer = unsigned(0); for nt in view(seq, windowsize-k+2:windowsize) # + 2 is important!
                 right_kmer = (right_kmer << 2) | Nt_bits[nt]
             end
 
@@ -51,22 +52,24 @@ using BioSequences, FASTX, Distances, BioAlignments, Random, StaticArrays
             
             for nt in view(seq, k:sequence_length-windowsize+1); i += 1
                 
-                left_kmer::UInt = ((left_kmer << 2) & mask) | Nt_bits[nt]
+                @inbounds left_kmer::UInt = ((left_kmer << 2) & mask) | Nt_bits[nt]
                 left_ind = left_kmer + 1
 
-                @inbounds right_kmer::UInt = ((right_kmer << 2) & mask) | Nt_bits[seq[i+windowsize-1]]
+                @inbounds right_kmer::UInt = ((right_kmer << 2) & mask) | Nt_bits[seq[i+windowsize]] # no -1 is important!
                 right_ind = right_kmer + 1
 
-                # simplified operation to update the distance - it is right, right??
-                @inbounds kmerDist += ScaleFactor * (1 +
-                    curr_kmer_freq[right_ind] + refVec[left_ind] -
-                    refVec[right_ind] - curr_kmer_freq[left_ind])
+                # simplified operation to update the distance
+                if left_ind != right_ind
+                    @inbounds kmerDist += ScaleFactor * (1 +
+                        curr_kmer_freq[right_ind] + refVec[left_ind] -
+                        refVec[right_ind] - curr_kmer_freq[left_ind])
+                    
+                    # update the current kmer freq vector
+                    @inbounds curr_kmer_freq[left_ind] -= 1
+                    @inbounds curr_kmer_freq[right_ind] += 1
+                end
 
                 if do_return_dists; push!(dist_vec, kmerDist) end 
-
-                # update the current kmer freq vector
-                @inbounds curr_kmer_freq[left_ind] -= 1
-                @inbounds curr_kmer_freq[right_ind] += 1
 
                 # minima finder
                 if kmerDist < thr

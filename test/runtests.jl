@@ -20,6 +20,7 @@ if test_locally
     include("../src/RSS.jl")
     include("../src/PairedKmers.jl")
     include("../src/StrobemerGMA/Strobemers.jl")
+    include("../src/StrobemerGMA/StrobeRefGen.jl")
     include("../src/StrobemerGMA/MonteCarloBenchmark.jl")
     include("../src/StrobemerGMA/StrobeGenomeMiner.jl")
 

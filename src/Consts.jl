@@ -5,8 +5,10 @@ export SubSeq, Seq, DnaSeq, DnaBits, Kfv
 const SubSeq = BioSequences.LongSubSeq{DNAAlphabet{4}}
 const Seq = BioSequences.LongSequence{DNAAlphabet{4}}
 const DnaSeq = Union{Seq, SubSeq}
+
 const DnaBits = Dict{BioSequences.DNA, UInt}
 const Kfv = Union{Vector{Int64}, Vector{Float64}}
+const BinInput = Union{MVector, Vector{Int}, Vector{Float64}}
 
 const JuliaPalette = Dict{String, String}(
     "purple" => "#9358A4",
@@ -14,6 +16,8 @@ const JuliaPalette = Dict{String, String}(
     "green" => "#369844",
     "blue" => "#4C64B0"
 )
+
+export JuliaPalette
 
 const NUCLEOTIDE_BITS = Dict{BioSequences.DNA, UInt}(
     DNA_A => unsigned(0),

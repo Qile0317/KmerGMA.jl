@@ -24,11 +24,10 @@ end
 
 export kmer_count
 
-const BinInput = Union{MVector, Vector{Int}, Vector{Float64}}
-
 # kmer counter that mutates the parameters - essential for KmerGMA
 function kmer_count!(; str::DnaSeq, k::Int, 
-    bins::BinInput, mask::UInt,
+    bins::BinInput, #BinInput is in Consts.jl, just a few vectors of nums
+    mask::UInt,
     Nt_bits::DnaBits = NUCLEOTIDE_BITS)
 
     kmer = unsigned(0)

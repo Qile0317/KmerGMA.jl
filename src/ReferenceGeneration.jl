@@ -1,11 +1,6 @@
 using FASTX, Distances, Random
 import Base
 
-"""
-Function that takes the path of a fasta file / vector of fasta records
-and kmer length `k`. Returns a tuple of length 2, where the first value is the reference kmer frequency distribution,
-and the second value is the average sequence length.
-"""
 function gen_ref_ws_cons(reference_seqs, k::Int; get_maxlen = false, Nt_bits::DnaBits = NUCLEOTIDE_BITS)
 
     is_str = false
@@ -166,3 +161,6 @@ function eliminate_null_params(
 end
 
 export eliminate_null_params
+
+# just had an idea; for weighting the RV why not just make it so that if any kmer that was in the reference will be weighted to be closer to RV
+# the best possible weighting is to just get biologically more conserved kmers. this can come from the analysis of the reference dataset.
