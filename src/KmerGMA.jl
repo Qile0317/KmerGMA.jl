@@ -18,6 +18,7 @@ module KmerGMA
     # strobemerGMA
     include("StrobemerGMA/Strobemers.jl")
     include("StrobemerGMA/MonteCarloBenchmark.jl")
+    include("StrobemerGMA/StrobeRefGen.jl")
     include("StrobemerGMA/StrobeGenomeMiner.jl")
 end
 

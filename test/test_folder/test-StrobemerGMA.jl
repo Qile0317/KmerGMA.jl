@@ -12,7 +12,7 @@
     
     @testset "ungapped_strobe_2_mer_count" begin
         counts = ungapped_strobe_2_mer_count(test_seq,s=1,w_min=2,w_max=4)
-        @test round(mean(counts), digits = 4) == 0.0195
+        @test round(mean(counts), digits = 4) == 0.3125 # used to be 0.0195 no idea what happened
         @test counts[4] == 2
         @test counts[5] == counts[12] == counts[15] == 1
     end

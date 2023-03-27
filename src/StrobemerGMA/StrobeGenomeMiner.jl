@@ -112,7 +112,26 @@ function StrobeGMA!(;
     end
 end
 
-function sgma(; genome_path::String, ref_path::String,
+"""
+    Strobemer_findGenes(;
+        genome_path::String,
+        ref_path::String,
+        s::Int = 2,
+        w_min::Int = 3,
+        w_max::Int = 5,
+        q::Int = 5,
+        KmerDistThr::Union{Int64, Float64} = 30,
+        buffer::Int64 = 50,
+        do_align::Bool = true,
+        do_return_dists::Bool = false,
+        do_return_hit_loci::Bool = false,
+        do_return_align::Bool = false,
+        verbose::Bool = true)
+
+An experimental homology searcher that uses Strobemers, specifically randstrobes with 2 sub-kmers. 
+Very unoptimized and there is not distance threshold estimation yet. More documentation is to come.
+"""
+function Strobemer_findGenes(; genome_path::String, ref_path::String,
     s::Int = 2, w_min::Int = 3, w_max::Int = 5, q::Int = 5,
     KmerDistThr::Union{Int64, Float64} = 30, buffer::Int64 = 50, do_align::Bool = true,
     do_return_dists::Bool = false, do_return_hit_loci::Bool = false, do_return_align::Bool = false,
@@ -149,6 +168,8 @@ function sgma(; genome_path::String, ref_path::String,
     if verbose; @info info_str end
     return output_vector
 end
+
+export Strobemer_findGenes
 
 """
 a = sgma(genome_path = "test/Loci.fasta", ref_path = "test/Alp_V_ref.fasta",

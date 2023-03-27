@@ -22,3 +22,12 @@ KmerGMA.write_results
 ```
 
 There is also possible pre-processing of the set of reference sequences that can be used in `kmerGMA.findGenes_cluster_mode` to further improve accuracy (though usually at the cost of a bit more more speed) More on this will be expanded on.
+
+## Experimental Strobemer-based homology searching
+
+!!! note
+    The following function also does homology searching with strobemers but is not user-friendly and lacking more documentation and testing. 
+
+```@docs
+KmerGMA.Strobemer_findGenes
+```
