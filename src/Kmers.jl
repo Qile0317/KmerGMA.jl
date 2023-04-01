@@ -26,7 +26,7 @@ export kmer_count
 
 # kmer counter that mutates the parameters - essential for KmerGMA
 function kmer_count!(; str::DnaSeq, k::Int, 
-    bins::BinInput, #BinInput is in Consts.jl, just a few vectors of nums
+    bins::BinInput, #BinInput is in Consts.jl
     mask::UInt,
     Nt_bits::DnaBits = NUCLEOTIDE_BITS)
 

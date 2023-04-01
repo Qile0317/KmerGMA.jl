@@ -130,6 +130,8 @@ end
 
 An experimental homology searcher that uses Strobemers, specifically randstrobes with 2 sub-kmers. 
 Very unoptimized and there is not distance threshold estimation yet. More documentation is to come.
+
+The function uses the same arguments and returns the same outputs as `KmerGMA.findGenes` and `KmerGMA.findGenes_cluster_mode` but `s`, `w_min`, `w_max`, `q` are randstrobe parameters.
 """
 function Strobemer_findGenes(; genome_path::String, ref_path::String,
     s::Int = 2, w_min::Int = 3, w_max::Int = 5, q::Int = 5,
@@ -171,7 +173,7 @@ end
 
 export Strobemer_findGenes
 
-"""
+
 a = sgma(genome_path = "test/Loci.fasta", ref_path = "test/Alp_V_ref.fasta",
     s = 2, w_min = 3, w_max = 5, q = 5, KmerDistThr = 16,
     do_return_dists = true)
@@ -186,4 +188,15 @@ refVec, ws, cons = gen_ref_ws_cons("test/Alp_V_ref.fasta", 6)
     do_return_dists = true, dist_vec = distvec, do_align = false)
 
 plot!(distvec)
-"""
+
+
+@time a = findGenes_cluster_mode(genome_path = "benchmark/Seqs/Human_IGHV_locus.fasta",
+    ref_path = "benchmark/Seqs/References/humans.fasta", do_return_dists = true)
+
+plot(a[2])
+
+@time a = Strobemer_findGenes(genome_path = "benchmark/Seqs/Human_IGHV_locus.fasta",
+    ref_path = "benchmark/Seqs/References/humans.fasta")
+# the current example is ab 3 times slower unoptimized than kmergma
+write_results(a[1], "strobe_hum_hits.fasta")
+plot(a[2])

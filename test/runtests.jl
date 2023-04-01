@@ -1,7 +1,7 @@
 using Test, BioSequences, FASTX, Random, BioAlignments, Distances, StaticArrays
 
 # for devs: if testing the script on your own machine, set the following variable to true. Otherwise must set to false when pushing
-test_locally = false
+test_locally = true
 
 #setting testing variables
 if test_locally
@@ -34,7 +34,6 @@ else
     test_genome = "Loci.fasta"
 end
 
-# testing sequences 
 const test_seq = dna"ATGCATGC"
 const test_consensus_seq = dna"CAGGTGCAGCTGGTGGAGTCTGGGGGAGGCTTGGTGCAGCCTGGGGGGTCTCTGAGACTCTCCTGTGCAGCCTCTGGATTCACCTTCAGTAGCTATGCCATGAGCTGGGTCCGCCAGGCTCCAGGGAAGGGGCTCGAGTGGGTCTCAGCTATTAATAGTGGTGGTGGTAGCACATACTATGCAGACTCCGTGAAGGGCCGATTCACCATCTCCAGAGACAACGCCAAGAACACGCTGTATCTGCAAATGAACAGCCTGAAACCTGAGGGCACGGCCGTGTATTACTGTGGTAAAGAAGA"
 
@@ -42,7 +41,14 @@ const test_KFV = [0.0, 0.0, 0.0, 2.0, 1.0, 0.0, 0.0,
     0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0]
 
 # mean function surprising doesnt exist in base library
-mean(vec::Vector{Float64}) = sum(vec)/length(vec)
+function mean(vec::Vector{Float64})
+    len::Int, curr_sum = 0, 0
+    for num in vec
+        curr_sum += num
+        len += 1
+    end
+    return curr_sum/len
+end
 
 # test 
 println("%%%%%%%%%% KmerGMA %%%%%%%%%%")

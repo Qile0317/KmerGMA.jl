@@ -1,9 +1,10 @@
 using BioAlignments, FASTX
 
 # alot of the subprocesses can be written into functions for readability but for performance sake everything is kept in the function
-# a lot of the values here initialize for k = 6, purely for the sake of more concisce testing.
+# a lot of the values here initialize for k = 6 and 6 reference sequence custers, purely for the sake of more concisce testing.
 
-@inline function Omn_KmerGMA!(;
+# this can also be multithreaded, tho idk if it should be 1 KFV/thread then distribute the rest, or just 1 whole process/thread
+function Omn_KmerGMA!(;
     genome_path::String,
     refVecs::Vector{Vector{Float64}},
     windowsizes::Vector{Int64}, 
@@ -12,18 +13,26 @@ using BioAlignments, FASTX
     k::Int64 = 6,
     ScaleFactor::Real = 0.16666666666666666666666666666666666666666666666667,
     mask::UInt64 = unsigned(4095), 
-    thr_vec::Kfv = Float64[35,31,38,34,27,27], 
+    thr_vec::Kfv = Float64[35, 31, 38, 34, 27, 27], 
     buff::Int64 = 50, # if higher should increase accuracy
     Nt_bits::Dict{DNA, UInt64} = NUCLEOTIDE_BITS,
-    score_model::AffineGapScoreModel{Int64} = AffineGapScoreModel(EDNAFULL, gap_open=-200, gap_extend=-1),
-    genome_pos::Int64 = 0,
+
     align_hits::Bool = true,
+    align_vec::Vector{SubAlignResult} = SubAlignResult[],
+    gap_open_score::Int = -200,
+    gap_extend_score::Int = -1,
+
+    genome_pos::Int64 = 0,
     get_hit_loci::Bool = false,
     hit_loci_vec::Vector{Int} = Int[],
     get_aligns::Bool = false,
-    align_vec::Vector{SubAlignResult} = SubAlignResult[],
     do_return_dists::Bool = false,
     dist_vec_vec::Vector{Vector{Float64}} = [Float64[] for _ in 1:6])
+
+    # setup score model
+    if align_hits
+        score_model = AffineGapScoreModel(EDNAFULL, gap_open = gap_open_score, gap_extend = gap_extend_score)
+    end
 
     # convert refVecs to static vectors
     vec_len = 2 << ((2*k)-1)
@@ -106,14 +115,13 @@ using BioAlignments, FASTX
                             @inbounds stops[ind] = false
                         end
                     
-                    # process actual hits
-                    elseif !stops[ind]
-                        stops[ind] = true
-                        curr_mins[ind] = kmerDist 
+                    # hit processing
+                    elseif !stops[ind]; stops[ind] = true
                         CMI = CMIs[ind]
 
+                        # first overlap check and processing
                         if !(CMI in prev_hit_range)
-                            hit_left_ind, hit_right_ind = max(CMI-buff,1), min(CMI+windowsizes[ind]-1+buff,sequence_length)
+                            hit_left_ind, hit_right_ind = max(CMI-buff,1), min(CMI+windowsizes[ind]-1+buff, sequence_length)
                             seq_UnitRange = hit_left_ind:hit_right_ind
 
                             if align_hits
@@ -124,21 +132,22 @@ using BioAlignments, FASTX
                                 seq_UnitRange = max(1, hit_left_ind+first(aligned_UnitRange)-1):min(hit_left_ind+last(aligned_UnitRange)-1, sequence_length)
                             end
 
-                            # second overlap check
+                            # second overlap check!
                             if last(seq_UnitRange) < first(prev_hit_range) || first(seq_UnitRange) > last(prev_hit_range)
-                                if get_hit_loci; push!(hit_loci_vec, first(seq_UnitRange)+genome_pos) end
 
-                                #create and push record
                                 push!(resultVec, FASTA.Record(
                                     FASTA.identifier(record)*
                                         " | Dist = "*string(round(curr_mins[ind], digits = 2))*
                                         " | KFV = $ind"*
                                         " | MatchPos = $seq_UnitRange"*
                                         " | GenomePos = $genome_pos"*
-                                        " | Len = "*string(last(seq_UnitRange)-first(seq_UnitRange)),
+                                        " | Len = "*string(last(seq_UnitRange)-first(seq_UnitRange)+1),
                                     view(seq, seq_UnitRange)
                                 ))
-                                prev_hit_range = seq_UnitRange # !! #prev_hit_range = min(first(seq_UnitRange), first(prev_hit_range)):max(last(seq_UnitRange), last(prev_hit_range)) # could be even more/less conservative if wanted
+
+                                if get_hit_loci; push!(hit_loci_vec, first(seq_UnitRange)+genome_pos) end
+                                prev_hit_range = seq_UnitRange # prev_hit_range = min(first(seq_UnitRange), first(prev_hit_range)):max(last(seq_UnitRange), last(prev_hit_range)) # could be even more/less conservative if wanted
+                                curr_mins[ind] = kmerDist 
                             end
                         end
                     end
@@ -150,8 +159,6 @@ using BioAlignments, FASTX
 end
 
 export Omn_KmerGMA!
-
-# an alternative is to have the same windowsize for all kmers so the curr kmer freq and right kmer will always be the same. 
 
 #write_results(test_res, "new_testing.fasta") # took 6*50 = 300 seconds as expected, for 6 subsets, which is exactly 6 times longer than the O(n) version
 

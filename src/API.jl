@@ -4,7 +4,7 @@ export findGenes
 export findGenes_cluster_mode
 export write_results
 
-# tiny helper function for warnings
+# helper function for warnings
 function warn_helper(k::Int, do_return_dists::Bool)
     if k < 5; @warn "Such a low k value of $k likely won't yield the most accurate results" end
     if do_return_dists; @warn "Setting do_return_dists to true may be very memory intensive" end 
@@ -18,6 +18,8 @@ end
         KmerDistThr::Union{Int64, Float64} = 0,
         buffer::Int64 = 50,
         do_align::Bool = true,
+        gap_open_score::Int = -69,
+        gap_extend_score::Int = -1,
         do_return_dists::Bool = false,
         do_return_hit_loci::Bool = false,
         do_return_align::Bool = false
@@ -40,9 +42,11 @@ Where `Identifier` is the contig ID of the genome where the current hit was foun
 # Optional Arguments
 - `k::Int64 = 6`: the kmer length to use for approximate matching. Generally it should probably remain between 5 - 10 and probably does not have a profound impact on how the matches are found. Check out the pre-print for more information
 - `KmerDistThr::Int64 = 0`: the Kmer Distance distance threshold for sequence matches to the query reference sequence set. Out of the context of the algorithm, lower values mean matches have to be more similar to the references. If left as 0, it is automatically computed. Once again the pre-print has information on this argument.
-- `buffer::Int64 = 50`: the amount of nucleotides left and right of a matched sequence that should be added to the returned fasta sequences, as KmerGMA is a heuristic
+- `buffer::Int64 = 50`: the amount of nucleotides left and right of a matched sequence that should be added to the returned fasta sequences, as KmerGMA is a heuristic. If `do_align` is set to `true` the buffer will be included for a more accurate alignment.
 - `verbose::Bool = true` Indicates whether to show info in the REPL about the the progress of the processing
-- `do_align`: Whether to align the hits+bufer region to the consensus sequence of the references. Highly recommended to keep as `true`
+- `do_align`: Whether to align the hits+buffer region to the consensus sequence of the references. Highly recommended to keep as `true`
+- `gap_open_score::Int = -69`: The `gap_open` scoring paramater for the `BioAlignments` semi global pairwise aligner function. The number should ideally be kept low to heavily penalize gap extensions for most use-cases.
+- `gap_extend_score::Int = -1`: The `gap_extend` scoring parameter for the `BioAlignments` semi global pairwise aligner function. Can be kept to the default `-1` as long as the `gap_open` score is low.
 - `do_return_dists`: boolean to indicate whether the kmer distances along every window along the genome should be returned in a vector. (intensive memory consumption when genomes are large)
 - `do_return_hit_loci`: if `true`, will return an additional vector of the position within the genomic sequences of each hit, corresponding to the index in the hit vector.
 - `do_return_align`: if `true`, will return an additional vector of alignment object of each hit to the consensus reference sequence.
@@ -54,7 +58,8 @@ The last three arguments would add term to the output. The output vector would i
 Note: Playing with the `KmerDistThr` argument could return more or less matches every time. 
 """
 function findGenes(; genome_path::String, ref_path::String,
-    k::Int = 6, KmerDistThr::Union{Int64, Float64} = 0, buffer::Int64 = 50, do_align::Bool = true,
+    k::Int = 6, KmerDistThr::Union{Int64, Float64} = 0, buffer::Int64 = 50,
+    do_align::Bool = true, gap_open_score::Int = -69, gap_extend_score::Int = -1,
     do_return_dists::Bool = false, do_return_hit_loci::Bool = false, do_return_align::Bool = false,
     verbose::Bool = true, KmerDist_threshold_buffer::Real = 8.0)
 
@@ -80,7 +85,8 @@ function findGenes(; genome_path::String, ref_path::String,
         genome_path = genome_path, refVec = RV, consensus_refseq = consensus_refseq,
         k = k, windowsize = windowsize, thr = KmerDistThr, buff = buffer,
         mask = unsigned(4^k - 1), ScaleFactor = 1/k, 
-        do_align = do_align, do_return_dists = do_return_dists,
+        do_align = do_align, gap_open_score = gap_open_score, gap_extend_score = gap_extend_score,
+        do_return_dists = do_return_dists,
         do_return_align = do_return_align, get_hit_loci = do_return_hit_loci,
 
         dist_vec = dist_vec,
@@ -107,11 +113,13 @@ end
         KmerDistThrs = Float64[0], 
         buff::Int64 = 50,
         do_align::Bool = true,
+        gap_open_score::Int = -200,
+        gap_extend_score::Int = -1,
+        do_return_align::Bool = false,
         do_return_dists::Bool = false,
         do_return_hit_loci::Bool = false,
-        do_return_align::Bool = false,
         verbose::Bool = true,
-        KmerDist_threshold_buffer::Real = 8.0
+        kmerDist_threshold_buffer::Real = 7
         )
 
 A slower (`O(mn)`) alternative to `KmerGMA.findGenes` to conduct homology searching in a genome, against a a reference sequence set, using a kmer-based sequence similarity metric.
@@ -135,13 +143,15 @@ Where `Identifier` is the contig ID of the genome where the current hit was foun
 - `cluster_cutoffs = [7,12,20,25]`: Important determination of the cutoff points to construct subsets of similar reference sequences. The cutoff points refer to the kmer distance against the reference. Usually, the more cutoffs may be better but the default cutoffs have been determined to be relatively robust.
 - `k::Int64 = 6`: the kmer length to use for approximate matching. Generally it should probably remain between 5 - 10 and probably does not have a profound impact on how the matches are found. Check out the pre-print for more information
 - `KmerDistThrs = [0]`: the Kmer Distance distance thresholds for each sequence matche to the query reference sequence set. Out of the context of the algorithm, lower values mean matches have to be more similar to the references. If left as 0, it is automatically computed. Once again a pre-print has information on this argument.
-- `buffer::Int64 = 50`: the amount of nucleotides left and right of a matched sequence that should be added to the returned fasta sequences, as KmerGMA is a heuristic
+- `buffer::Int64 = 100`: the amount of nucleotides left and right of a matched sequence that should be added to the returned fasta sequences, as KmerGMA is a heuristic. If `do_align` is set to `true` the buffer will be included for a more accurate alignment.
 - `do_align`: Whether to align the hits+bufer region to the consensus sequence of the references. Highly recommended to keep as `true`
+- `gap_open_score::Int = -200`: The `gap_open` scoring paramater for the `BioAlignments` semi global pairwise aligner function. The number should ideally be kept low to heavily penalize gap extensions for most use-cases.
+- `gap_extend_score::Int = -1`: The `gap_extend` scoring parameter for the `BioAlignments` semi global pairwise aligner function. Can be kept to the default `-1` as long as the `gap_open` score is low.
+- `do_return_align`: if `true`, will return an additional vector of alignment object of each hit to the consensus reference sequence.
 - `do_return_dists`: boolean to indicate whether the kmer distances along every window along the genome should be returned in a vector. (intensive memory consumption when genomes are large)
 - `do_return_hit_loci`: if `true`, will return an additional vector of the position within the genomic sequences of each hit, corresponding to the index in the hit vector.
-- `do_return_align`: if `true`, will return an additional vector of alignment object of each hit to the consensus reference sequence.
 - `verbose::Bool = true` Indicates whether to show info in the REPL about the the progress of the processing
-- `KmerDist_threshold_buffer::Real = 8.0`: a value to determine approximately how much kmer distance a hit should be lower than any random non-hit sequence. Keep in mind that kmerdistance approximates edit distance for mutations better than indels.
+- `kmerDist_threshold_buffer::Real = 7`: a value to determine approximately how much kmer distance a hit should be lower than any random non-hit sequence. Keep in mind that kmerdistance approximates edit distance for mutations better than indels. Additionally, the false positive rate would likely increase as the value goes too low. Unfortunately this value is currently only optimized for `k = 6`. something around `20` seem to work well for `k = 5`. 
 ...
 
 The last three arguments would add terms to the output. When `verbose` is true the exact outputs are even stated. 
@@ -151,22 +161,25 @@ There are some more details to be added in future releases.
 """
 function findGenes_cluster_mode(; genome_path::String, ref_path::String,
     cluster_cutoffs = [7,12,20,25], # cluster cutoff visualization function should be made
-    k::Int = 6, KmerDistThrs = Float64[0.0], buffer::Int64 = 50, do_align::Bool = true,
+    k::Int = 6, KmerDistThrs::Kfv = Float64[0.0], buffer::Int64 = 100,
+    
+    do_align::Bool = true, gap_open_score::Int = -200, gap_extend_score::Int = -1,
+
     do_return_dists::Bool = false, do_return_hit_loci::Bool = false, do_return_align::Bool = false,
-    verbose::Bool = true, KmerDist_threshold_buffer::Real = 8.0)
+    verbose::Bool = true,
+    kmerDist_threshold_buffer::Real = 7) # (It is dependent on the average variance of of kmer distance so a function can do that)
 
     if verbose; @info "pre-processing references and parameters..." end 
     warn_helper(k, do_return_dists)
 
     RVs, windowsizes, consensus_refseqs, invalids = cluster_ref_API(ref_path, k; cutoffs = cluster_cutoffs)
-    RVs, windowsizes, consensus_refseqs = eliminate_null_params(RVs, windowsizes, consensus_refseqs, invalids)
-    invalids = nothing
+    RVs, windowsizes, consensus_refseqs = eliminate_null_params(RVs, windowsizes, consensus_refseqs, invalids); invalids = nothing
 
     if k >= minimum(windowsizes); error("some/all of the average reference sequence lengths exceeds/is equal to the chosen kmer length $k. please reduce k. ") end
 
     # distance thresholds
-    estimated_optimal_KmerDistThrs = estimate_optimal_threshold(RVs, windowsizes; buffer = KmerDist_threshold_buffer)
-    if first(KmerDistThrs) == 0.0 # user indicates they want it to be automated
+    estimated_optimal_KmerDistThrs = estimate_optimal_threshold(RVs, windowsizes; buffer = kmerDist_threshold_buffer)
+    if first(KmerDistThrs) == 0 # user indicates they want it to be automated
         KmerDistThrs = estimated_optimal_KmerDistThrs
     else
         num_warn_str, ind_warn_str = "", ""
@@ -191,9 +204,16 @@ function findGenes_cluster_mode(; genome_path::String, ref_path::String,
         resultVec = hit_vector, k = k,
         ScaleFactor = 1/k, mask = unsigned(4^k -1),
         thr_vec = KmerDistThrs,
-        buff = buffer, align_hits = do_align, get_hit_loci = do_return_hit_loci, 
+        buff = buffer,
+
+        align_hits = do_align,
+        gap_open_score = gap_open_score,
+        gap_extend_score = gap_extend_score,
+        get_aligns = do_return_align,
+        
+        get_hit_loci = do_return_hit_loci, 
         hit_loci_vec = hit_loci_vec,
-        get_aligns = do_return_align, align_vec = alignment_vec,
+        align_vec = alignment_vec,
         do_return_dists = do_return_dists, dist_vec_vec = dist_vec_vec)
 
     info_str = "genome mining completed successfully, returning vector of: vector of hits"
@@ -220,4 +240,3 @@ function write_results(KmerGMA_result_vec::Vector{FASTX.FASTA.Record}, file_path
     end
     @info "writing complete"
 end
-1+1

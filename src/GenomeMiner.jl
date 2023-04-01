@@ -1,9 +1,7 @@
 using BioSequences, FASTX, Distances, BioAlignments, Random, StaticArrays
 
-# lots of memory is consumed because the records become stored in memory
-# gotta check the indexing for the left and right kmers...
-
-@inline function ac_gma_testing!(;
+# single threaded version of the O(n) KmerGMA
+function ac_gma_testing!(;
     genome_path::String,
     refVec::Vector{Float64},
     consensus_refseq::Seq,
@@ -14,17 +12,21 @@ using BioSequences, FASTX, Distances, BioAlignments, Random, StaticArrays
     mask::UInt64 = unsigned(4095), 
     Nt_bits::DnaBits = NUCLEOTIDE_BITS,
     ScaleFactor::Float64 = 0.166666666666666666666666666666666666666666666667,
-    do_align::Bool = true,
-    score_model::AffineGapScoreModel{Int64} = AffineGapScoreModel(EDNAFULL, gap_open=-69, gap_extend=-1),
-    do_return_dists::Bool = false, 
+
+    do_align::Bool = true, result_align_vec = [],
+    gap_open_score::Int = -69,
+    gap_extend_score::Int = -1,
+    
+    do_return_dists::Bool = false, dist_vec = Float64[],
     do_return_align::Bool = false,
     get_hit_loci::Bool = false,
-    dist_vec = Float64[], result_align_vec = [], hit_loci_vec = Int[],
+    hit_loci_vec = Int[],
     genome_pos::Int = 0, resultVec::Vector{FASTA.Record} = FASTA.Record[])
 
     # convert refVec to static vector for speed improvement
     refVec = SVector{2 << ((2*k)-1)}(refVec) # takes ab 6 ms
-    curr_kmer_freq = zeros(Int, 2 << ((2*k)-1)) # seems like MVector is slower
+    curr_kmer_freq = zeros(Int, 2 << ((2*k)-1)) # seems like MVector is surprisingly slower
+    score_model = AffineGapScoreModel(EDNAFULL, gap_open = gap_open_score, gap_extend = gap_extend_score)
 
     open(FASTX.FASTA.Reader, genome_path) do reader 
         for record in reader; seq::Seq = getSeq(record)
@@ -50,8 +52,8 @@ using BioSequences, FASTX, Distances, BioAlignments, Random, StaticArrays
 
             CMI, stop, currminim, i, goal_ind = 2, true, kmerDist, 0, 0
             
+            # iteration
             for nt in view(seq, k:sequence_length-windowsize+1); i += 1
-                
                 @inbounds left_kmer::UInt = ((left_kmer << 2) & mask) | Nt_bits[nt]
                 left_ind = left_kmer + 1
 
@@ -80,34 +82,35 @@ using BioSequences, FASTX, Distances, BioAlignments, Random, StaticArrays
                     end
                 
                 # hit processing 
-                elseif !stop
+                elseif !stop; stop = true
                     if CMI > goal_ind; goal_ind = CMI + windowsize - 1
                         # alignment and matched unitrange
                         left_ind, right_ind = max(CMI-buff,1), min(CMI+windowsize-1+buff,sequence_length)
+                        seq_UnitRange = left_ind:right_ind
 
                         if do_align 
-                            aligned_obj = pairalign(SemiGlobalAlignment(),consensus_refseq,view(seq,left_ind:right_ind),score_model)
+                            aligned_obj = pairalign(SemiGlobalAlignment(),
+                                view(consensus_refseq, 1:windowsize),
+                                view(seq,left_ind:right_ind),score_model)
+
                             if do_return_align; push!(result_align_vec, aligned_obj) end
+
                             aligned_UnitRange = cigar_to_UnitRange(aligned_obj)
                             seq_UnitRange = max(1, left_ind+first(aligned_UnitRange)-1):min(left_ind+last(aligned_UnitRange)-1, sequence_length)
-                        else
-                            seq_UnitRange = left_ind:right_ind
                         end
 
                         #create record
-                        rec = FASTA.Record(
+                        push!(resultVec, FASTA.Record(
                             FASTA.identifier(record)*
                                 " | dist = "*string(round(currminim, digits = 2))*
                                 " | MatchPos = $seq_UnitRange"*
                                 " | GenomePos = $genome_pos"*
-                                " | Len = "*string(last(seq_UnitRange)-first(seq_UnitRange)),
+                                " | Len = "*string(last(seq_UnitRange)-first(seq_UnitRange)+1), 
                             view(seq, seq_UnitRange)
-                        )
+                        ))
 
                         if get_hit_loci; push!(hit_loci_vec, first(seq_UnitRange)+genome_pos) end 
-                        push!(resultVec, rec)
                         currminim = kmerDist
-                        stop = true
                     end
                 end
             end
