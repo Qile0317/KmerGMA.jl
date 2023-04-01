@@ -173,7 +173,8 @@ end
 
 export Strobemer_findGenes
 
-
+"""
+# old testing code
 a = sgma(genome_path = "test/Loci.fasta", ref_path = "test/Alp_V_ref.fasta",
     s = 2, w_min = 3, w_max = 5, q = 5, KmerDistThr = 16,
     do_return_dists = true)
@@ -200,3 +201,4 @@ plot(a[2])
 # the current example is ab 3 times slower unoptimized than kmergma
 write_results(a[1], "strobe_hum_hits.fasta")
 plot(a[2])
+"""

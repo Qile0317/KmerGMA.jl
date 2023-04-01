@@ -50,14 +50,14 @@ function ac_gma_testing!(;
                 right_kmer = (right_kmer << 2) | Nt_bits[nt]
             end
 
-            CMI, stop, currminim, i, goal_ind = 2, true, kmerDist, 0, 0
+            CMI, stop, currminim, i, goal_ind = 2, true, kmerDist, windowsize, 0
             
             # iteration
-            for nt in view(seq, k:sequence_length-windowsize+1); i += 1
+            for nt in view(seq, k:sequence_length-windowsize+1); i += 1 # need to test what the fastest way to iterate over two nucleotides at the same time is
                 @inbounds left_kmer::UInt = ((left_kmer << 2) & mask) | Nt_bits[nt]
                 left_ind = left_kmer + 1
 
-                @inbounds right_kmer::UInt = ((right_kmer << 2) & mask) | Nt_bits[seq[i+windowsize]] # no -1 is important!
+                @inbounds right_kmer::UInt = ((right_kmer << 2) & mask) | Nt_bits[seq[i]] # no -1 is important!
                 right_ind = right_kmer + 1
 
                 # simplified operation to update the distance
@@ -77,7 +77,7 @@ function ac_gma_testing!(;
                 if kmerDist < thr
                     if kmerDist < currminim
                         currminim = kmerDist
-                        CMI = i
+                        CMI = i - windowsize
                         stop = false
                     end
                 

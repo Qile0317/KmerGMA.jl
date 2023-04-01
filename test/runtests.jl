@@ -1,7 +1,7 @@
 using Test, BioSequences, FASTX, Random, BioAlignments, Distances, StaticArrays
 
 # for devs: if testing the script on your own machine, set the following variable to true. Otherwise must set to false when pushing
-test_locally = true
+test_locally = false
 
 #setting testing variables
 if test_locally
@@ -23,6 +23,9 @@ if test_locally
     include("../src/StrobemerGMA/StrobeRefGen.jl")
     include("../src/StrobemerGMA/MonteCarloBenchmark.jl")
     include("../src/StrobemerGMA/StrobeGenomeMiner.jl")
+
+    # in progress multithreading
+    include("../src/Multithreaded/GenomeMiner.jl")
 
     tf = "test/Alp_V_ref.fasta"
     test_mini_genome = "test/Alp_V_locus.fasta"
