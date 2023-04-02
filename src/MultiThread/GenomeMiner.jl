@@ -14,7 +14,6 @@ using BioSequences, FASTX, Distances, BioAlignments, Random, StaticArrays
     k::Int64 = 6,
     windowsize::Int64 = 289,
     thr::Union{Int64, Float64} = 30,
-
     buff::Int64 = 50,
     mask::UInt64 = unsigned(4095), 
     Nt_bits::DnaBits = NUCLEOTIDE_BITS,
@@ -100,52 +99,49 @@ end
 
 export record_KmerGMA!
 
-"""
 # function to take care of the actual threading from the API
-function threaded_KmerGMA!(;
+function multi_threaded_KmerGMA!(;
     genome_path::String,
     refVec::Vector{Float64},
     consensus_refseq::Seq,
+    resultVec_vec::Vector{Vector{FASTA.Record}},
     k::Int64 = 6,
     windowsize::Int64 = 289,
-    thr::Union{Int64, Float64} = 33.5,
+    thr::Union{Int64, Float64} = 30,
     buff::Int64 = 50,
-    mask::UInt64 = unsigned(4095), 
     Nt_bits::DnaBits = NUCLEOTIDE_BITS,
-    ScaleFactor::Float64 = 0.166666666666666666666666666666666666666666666667,
     do_align::Bool = true,
-    score_model::AffineGapScoreModel{Int64} = AffineGapScoreModel(EDNAFULL, gap_open=-69, gap_extend=-1),
-    do_return_dists::Bool = false, 
-    do_return_align::Bool = false,
-    dist_vec = Float64[], result_align_vec = [], 
-    resultVec::Vector{FASTA.Record} = FASTA.Record[])
-    # get_hit_loci::Bool = false,
-    # hit_loci_vec = Int[],
-    # genome_pos::Int = 0, 
+    gap_open_score::Int = -69,
+    gap_extend_score::Int = -1
+    )
 
-    # convert refVec to static vector for speed improvement
-    refVec = SVector{2 << ((2*k)-1)}(refVec) # takes ab 6 ms
-    curr_kmer_freq = zeros(Int, 2 << ((2*k)-1)) # seems like MVector is surprisingly slower
+    num_kmers = 2 << ((2*k)-1)
+    refVec = SVector{num_kmers}(refVec) # takes ab 6 ms
+    curr_kmer_freq_vec = [zeros(Int, num_kmers) for _ in 1:Threads.nthreads()] # seems like MVector is surprisingly slower
+    mask = unsigned(num_kmers - 1)
+    ScaleFactor = 1/k
+    initial_scale_factor = ScaleFactor * 0.5
+    score_model = AffineGapScoreModel(EDNAFULL,
+        gap_open = gap_open_score, gap_extend = gap_extend_score)
 
     open(FASTX.FASTA.Reader, genome_path) do reader 
-        for record in reader
-            record_KmerGMA!( # so the clean approach is to have an input class, but they are slow AF 
-                record = record, refVec = refVec, curr_kmer_freq = curr_kmer_freq,
+        @sync for record in reader
+            Threads.@spawn record_KmerGMA!(
+                record = record, refVec = refVec,
+                curr_kmer_freq_vec = curr_kmer_freq_vec,
                 consensus_refseq = consensus_refseq, # does this create a copy? need to test if theres any improvements if i used subseq
-                k = k, windowsize = windowsize, thr = thr, buff = buff,
+                resultVec_vec = resultVec_vec, k = k,
+                windowsize = windowsize, thr = thr, buff = buff,
                 mask = mask, Nt_bits = Nt_bits, ScaleFactor = ScaleFactor,
-                do_align = do_align, score_model = score_model,
-                do_return_dists = do_return_dists, do_return_align = do_return_align,
-                dist_vec = dist_vec,
-                result_align_vec = result_align_vec, # hit_loci_vec = hit_loci_vec, get_hit_loci = get_hit_loci, genome_pos = genome_pos)
-                resultVec = resultVec 
+                initial_scale_factor = initial_scale_factor,
+                do_align = do_align, score_model = score_model
             )
         end
     end
 end
 
-export threaded_KmerGMA!
+#export threaded_KmerGMA!
+
+# so continually spawning threads destroys the memory, but a novel approach with channels is being implemented.
 
 # should use profiler for optimization
-# got rid of genome_pos for multithreaded ver bc its a bit complicated and likely slower. the fasta_id_to_cum_len should do the trick.
-"""

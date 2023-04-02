@@ -244,6 +244,7 @@ end
     end
 
     # need to do multi record to ac test the threads
+    res = [FASTA.Record[] for _ in 1:8]
 end
 
 @testset "API.jl" begin
