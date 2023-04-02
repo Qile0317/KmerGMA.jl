@@ -11,7 +11,10 @@ module KmerGMA
     include("API.jl")
     include("ExactMatch.jl")
 
-    # work in progress 
+    # work in progress multithreading
+    include("MultiThread/GenomeMiner.jl")
+
+    # work in progress features
     include("RSS.jl")
     include("PairedKmers.jl")
 
