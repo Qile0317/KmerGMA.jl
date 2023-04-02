@@ -126,12 +126,23 @@ end
 end
 
 @testset "Alignment.jl" begin
-    score_model = AffineGapScoreModel(EDNAFULL, gap_open=-5, gap_extend=-1)
-    aln_obj = pairalign(SemiGlobalAlignment(),dna"ATGCATGC",dna"GGGGGATGCATGCAAAAA",score_model)
-    @test cigar_to_UnitRange(aln_obj) == 6:13
+    @testset "cigar_to_UnitRange" begin
+        score_model = AffineGapScoreModel(EDNAFULL, gap_open=-5, gap_extend=-1)
+        aln_obj = pairalign(SemiGlobalAlignment(),dna"ATGCATGC",dna"GGGGGATGCATGCAAAAA",score_model)
+        @test cigar_to_UnitRange(aln_obj) == 6:13
 
-    aln_obj = pairalign(SemiGlobalAlignment(),dna"ATGCATGC",dna"GGGGGATGCTTATGCAAAAA",score_model)
-    @test cigar_to_UnitRange(aln_obj) == 6:15
+        aln_obj = pairalign(SemiGlobalAlignment(),dna"ATGCATGC",dna"GGGGGATGCTTATGCAAAAA",score_model)
+        @test cigar_to_UnitRange(aln_obj) == 6:15
+    end
+    
+    @testset "align_unitrange" begin
+        open(FASTX.FASTA.Reader, test_8_seqs) do io
+            @test align_unitrange(
+                getSeq(first(io)), 450:900,
+                test_consensus_seq, 289, 1000
+            ) == 501:789
+        end
+    end
 end
 
 @testset "RSS.jl" begin # UNFINISHED
@@ -207,6 +218,32 @@ end
         @test FASTA.description(test_res[2]) == "AM773548.1 | Dist = 33.96 | KFV = 4 | MatchPos = 23907:24198 | GenomePos = 0 | Len = 292"
         @test FASTA.description(test_res[3]) == "AM773548.1 | Dist = 26.17 | KFV = 3 | MatchPos = 33845:34132 | GenomePos = 0 | Len = 288" # ugh this got screwed up
     end
+end
+
+@testset "MultiThreaded KmerGMA" begin # unfinished
+    RV, ws, cons_seq = gen_ref_ws_cons(tf, 6)
+    RV = SVector{4096}(RV)
+
+    @testset "single record" begin
+        res = [FASTA.Record[] for _ in 1:Threads.nthreads()]
+
+        open(FASTX.FASTA.Reader, test_mini_genome) do io
+            record_KmerGMA!(
+                record = first(io),
+                refVec = RV,
+                curr_kmer_freq_vec = [zeros(Int64, 4096) for _ in 1:Threads.nthreads()],
+                consensus_refseq = cons_seq,
+                resultVec_vec = res,
+                thr = 30)
+            
+            @test length(first(res)) == 3
+            @test FASTA.description(first(res)[1]) == "AM773548.1 | dist = 8.1 | MatchPos = 6852:7140 | Len = 289"
+            @test FASTA.description(first(res)[2]) == "AM773548.1 | dist = 24.87 | MatchPos = 23907:24201 | Len = 295"
+            @test FASTA.description(first(res)[3]) == "AM773548.1 | dist = 10.99 | MatchPos = 33845:34133 | Len = 289"
+        end
+    end
+
+    # need to do multi record to ac test the threads
 end
 
 @testset "API.jl" begin

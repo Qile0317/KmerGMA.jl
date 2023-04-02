@@ -25,16 +25,18 @@ if test_locally
     include("../src/StrobemerGMA/StrobeGenomeMiner.jl")
 
     # in progress multithreading
-    include("../src/Multithreaded/GenomeMiner.jl")
+    include("../src/MultiThread/GenomeMiner.jl")
 
-    tf = "test/Alp_V_ref.fasta"
+    tf = "test/fasta_files/Alp_V_ref.fasta"
     test_mini_genome = "test/Alp_V_locus.fasta"
     test_genome = "test/Loci.fasta"
+    test_8_seqs = "test/fasta_files/8_ident_Alp_V_loci.fasta"
 else
     using KmerGMA
-    tf = "Alp_V_ref.fasta"
+    tf = "fasta_files/Alp_V_ref.fasta"
     test_mini_genome = "Alp_V_locus.fasta"
     test_genome = "Loci.fasta"
+    test_8_seqs = "fasta_files/8_ident_Alp_V_loci.fasta"
 end
 
 const test_seq = dna"ATGCATGC"

@@ -25,4 +25,24 @@ end
 
 export cigar_to_UnitRange
 
+# helper to get the aligned hit unitrange depending 
+@inline function align_unitrange(
+    seq::DnaSeq, seq_UnitRange::UnitRange{Int},
+    consensus_seq::DnaSeq, windowsize::Int,
+    sequence_length::Int,
+    score_model::AffineGapScoreModel{Int} = AffineGapScoreModel(EDNAFULL, gap_open=-69, gap_extend=-1))
+
+    aligned_obj = pairalign(SemiGlobalAlignment(),
+                        view(consensus_seq, 1:windowsize),
+                        view(seq, seq_UnitRange),
+                        score_model)
+
+    aligned_UnitRange = cigar_to_UnitRange(aligned_obj)
+    return max(
+        1, first(seq_UnitRange) + first(aligned_UnitRange) - 1):min(
+            first(seq_UnitRange) + last(aligned_UnitRange) - 1, sequence_length)
+end
+
+export align_unitrange
+
 # known issue in alignment: sometimes the C/G in a V gene doesn match to the correct corresponding G/C, messing up the alignment and cigar
