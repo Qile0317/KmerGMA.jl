@@ -1,4 +1,4 @@
-"""
+
 # unfinished script to multithread 
 using BioSequences, FASTX, Distances, BioAlignments, Random, StaticArrays
 
@@ -17,9 +17,8 @@ using BioSequences, FASTX, Distances, BioAlignments, Random, StaticArrays
     k::Int64 = 6,
     windowsize::Int64 = 289,
     thr::Union{Int64, Float64} = 33.5,
-    buff::Int64 = 50,
-    # record_len_thr::Int = 0, # implement in the future: optionally skip record if too short
 
+    buff::Int64 = 50,
     mask::UInt64 = unsigned(4095), 
     Nt_bits::DnaBits = NUCLEOTIDE_BITS,
     ScaleFactor::Float64 = 0.166666666666666666666666666666666666666666666667,
@@ -29,10 +28,6 @@ using BioSequences, FASTX, Distances, BioAlignments, Random, StaticArrays
     do_return_align::Bool = false,
     dist_vec = Float64[], result_align_vec = [],
     resultVec::Vector{FASTA.Record} = FASTA.Record[])
-
-    #get_hit_loci::Bool = false,
-    #hit_loci_vec = Int[]
-    #genome_pos::Int = 0)
 
     # get sequence
     seq::Seq = getSeq(record)
@@ -173,4 +168,3 @@ export threaded_KmerGMA!
 
 # should use profiler for optimization
 # got rid of genome_pos for multithreaded ver bc its a bit complicated and likely slower. the fasta_id_to_cum_len should do the trick.
-"""

@@ -59,14 +59,18 @@ function Omn_KmerGMA!(;
             prev_hit_range = 0:0 
             
             for ind in 1:len_KFVs
-                if sequence_length < windowsizes[ind]; continue end #! need to sort out 
+                @inbounds if sequence_length < windowsizes[ind]
+                    continue
+                end 
                 
-                fill!(all_curr_kmer_freq[ind], 0)
+                @inbounds fill!(all_curr_kmer_freq[ind], 0)
 
-                kmer_count!(str = view(seq, 1:windowsizes[ind]), k = k,
-                bins = all_curr_kmer_freq[ind], mask = mask)
+                @inbounds kmer_count!(str = view(seq, 1:windowsizes[ind]), 
+                str_len = windowsizes[ind], k = k,
+                bins = all_curr_kmer_freq[ind], mask = mask,
+                Nt_bits = Nt_bits)
                 
-                kmerDist_vec[ind] = curr_mins[ind] = ScaleFactor * 0.5 *
+                @inbounds kmerDist_vec[ind] = curr_mins[ind] = ScaleFactor * 0.5 *
                     Distances.sqeuclidean(refVecs[ind], all_curr_kmer_freq[ind])
 
                 @inbounds CMIs[ind], stops[ind] = 1, true
@@ -77,12 +81,11 @@ function Omn_KmerGMA!(;
                 end
             end
 
-            left_kmer = unsigned(0)
-            for c in view(seq, 1:k-1)
-                left_kmer = (left_kmer << 2) | Nt_bits[c]
+            left_kmer = unsigned(0); for i in 1:k-1
+                @inbounds left_kmer = (left_kmer << 2) | Nt_bits[seq[i]]
             end
 
-            # iteration over the current record
+            # iteration over the current record - have yet to speed this up like the regular gma
             i = 0; for nt in view(seq, k:sequence_length-maxws+1); i += 1
 
                 # change left kmer

@@ -1,6 +1,8 @@
 using BioSequences
 import Core
 
+# I just realized - to avoid needing to add 1 to every kmer i can just shift the vector by one index...
+
 """
     kmer_count(str::DnaSeq, k::Int, Nt_bits::DnaBits = NUCLEOTIDE_BITS)
 
@@ -11,13 +13,16 @@ To see what kmer each index corresponds to, see the function `as_kmer`
 """
 function kmer_count(str::DnaSeq, k::Int, Nt_bits::DnaBits = NUCLEOTIDE_BITS)
     mask = unsigned((2 << ((2 * k) - 1)) - 1)
-    bins, kmer = zeros(mask+1), unsigned(0)
-    for c in view(str, 1:k-1)
-        kmer = (kmer << 2) | Nt_bits[c]
-    end
-    for c in view(str, k:length(str))
-        kmer = ((kmer << 2) & mask) | Nt_bits[c]
-        bins[-~kmer] += 1
+    bins = zeros(mask + 1)
+    kmer = unsigned(0)
+
+    for i in eachindex(str)
+        if i < k
+            @inbounds kmer = (kmer << 2) | Nt_bits[str[i]] 
+        else
+            @inbounds kmer = ((kmer << 2) & mask) | Nt_bits[str[i]]
+            @inbounds bins[kmer + 1] += 1
+        end
     end
     return bins
 end
@@ -25,24 +30,21 @@ end
 export kmer_count
 
 # kmer counter that mutates the parameters - essential for KmerGMA
-function kmer_count!(; str::DnaSeq, k::Int, 
-    bins::BinInput, #BinInput is in Consts.jl
-    mask::UInt,
-    Nt_bits::DnaBits = NUCLEOTIDE_BITS)
+@inline function kmer_count!(; str::DnaSeq, 
+    str_len::Int, k::Int, bins::BinInput, 
+    mask::UInt, Nt_bits::DnaBits = NUCLEOTIDE_BITS)
 
-    kmer = unsigned(0)
-    for c in view(str, 1:k-1)
-        kmer = (kmer << 2) | Nt_bits[c]
+    kmer = unsigned(0); for i in 1:k-1
+        @inbounds kmer = (kmer << 2) | Nt_bits[str[i]]
     end
-    for c in view(str, k:length(str))
-        kmer = ((kmer << 2) & mask) | Nt_bits[c]
-        bins[-~kmer] += 1
+    for i in k:str_len
+        @inbounds kmer = ((kmer << 2) & mask) | Nt_bits[str[i]]
+        @inbounds bins[kmer + 1] += 1
     end
 end
 
 export kmer_count!
 
-# pairwise kmer distance of two sequences, not optimized for performance
 """
     kmer_dist(seq1, seq2, k::Int, Nt_bits::DnaBits = NUCLEOTIDE_BITS)
 
@@ -59,7 +61,7 @@ end
 
 export kmer_dist
 
-#TODO: look into corrected kmer distance
+#TODO: look into corrected kmer distance - could it possibly be better or worse?
 
 # code below are for user convenience with kmer and bit conversions
 

@@ -24,7 +24,8 @@ function gen_ref_ws_cons(reference_seqs, k::Int; get_maxlen = false, Nt_bits::Dn
         if get_maxlen; maxlen = max(maxlen, curr_len) end
 
         seq = getSeq(record)
-        kmer_count!(str=seq,k=k,bins=answer,mask=mask,Nt_bits=Nt_bits)
+        kmer_count!(str = seq, str_len = FASTX.FASTA.seqsize(record),
+            k = k, bins = answer, mask = mask, Nt_bits = Nt_bits)
 
         lengthen!(curr_profile, curr_len)
         add_consensus!(curr_profile, seq)
@@ -41,10 +42,12 @@ end
 
 export gen_ref_ws_cons
 
+# consensus seq is many times longer than ws, not nessecarily a bad thing ig
+
 # version for RV clustering %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # helper function to determine if num is in which range
-function get_cluster_index(inp, cutoffs::Vector)
+@inline function get_cluster_index(inp, cutoffs::Vector)
     answer = 1
     for num in cutoffs
         if inp <= num; return answer end
@@ -92,6 +95,7 @@ function cluster_ref_API(reference_seqs::String, k::Int;
 
     # iterate through records again to get the distance of the reference to the avgKFV
     open(FASTA.Reader, reference_seqs) do reader
+        mask::UInt = unsigned((4^k)-1)
         for record in reader
             seq = getSeq(record)
             curr_kmer_dist = kmer_dist(seq, average_KFV, k)
@@ -101,18 +105,22 @@ function cluster_ref_API(reference_seqs::String, k::Int;
             add_consensus!(consensus_dat_vec[cluster_ind], seq) # could be done during kmer_dist but ehh...
             windowsizes[cluster_ind] += length(seq)
             lens[cluster_ind] += 1
-            kmer_count!(str = seq, k = k, bins = KFVs[cluster_ind], mask = unsigned((4^k)-1), Nt_bits = Nt_bits)
+            @inbounds kmer_count!(str = seq, str_len = FASTX.FASTA.seqsize(record),
+                k = k, bins = KFVs[cluster_ind], mask = mask,
+                Nt_bits = Nt_bits)
         end
     end
 
     consensus_vec = [dna"" for _ in 1:num_cutoffs]
     for i in 1:num_cutoffs
         if lens[i] != 0
-            KFVs[i] ./= lens[i]
-            windowsizes[i] = Int(round(windowsizes[i]/lens[i]))
-            consensus_vec[i] = consensus_seq(consensus_dat_vec[i])[1:windowsizes[i]]
+            @inbounds begin
+                KFVs[i] ./= lens[i]
+                windowsizes[i] = Int(round(windowsizes[i]/lens[i]))
+                consensus_vec[i] = consensus_seq(consensus_dat_vec[i])[1:windowsizes[i]]
+            end
         else
-            invalid_vec[i] = true
+            @inbounds invalid_vec[i] = true
         end
     end
 
@@ -131,7 +139,6 @@ end
 
 export cluster_ref_API
 
-not(inp::Bool) = !inp
 """
     eliminate_null_params(
         KFVs::Vector{Vector{Float64}},
@@ -148,7 +155,7 @@ function eliminate_null_params(
 
     invalid_inds = []
     for (i, invalid) in enumerate(invalid_vec)
-        if not(invalid); push!(invalid_inds, i) end
+        if !invalid; push!(invalid_inds, i) end
     end
     new_KFVs, new_windowsizes = Vector{Float64}[], Int[]
     new_consensus_vec = Seq[]
