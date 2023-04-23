@@ -1,5 +1,6 @@
-# unfortunately it seems like useing strobes dont really offer any advantage to kmers
 # feels more promising if vectors were weighed following an analysis of the reference sequences
+# strobes seem to incur a high false positive rate but alignment can filter bad results.
+# however, if alignment and filtering is required, it kinda ruins the point. But then again, many other similar tools do this as well
 
 function StrobeGMA!(;
     genome_path::String,
@@ -13,12 +14,13 @@ function StrobeGMA!(;
 
     buff::Int64 = 50,
     do_align::Bool = true,
-    score_model::AffineGapScoreModel{Int64} = AffineGapScoreModel(EDNAFULL, gap_open=-69, gap_extend=-1),
+    score_model::AffineGapScoreModel{Int64} = AffineGapScoreModel(EDNAFULL, gap_open=-69, gap_extend=-69),
+    score_threshold::Int = 0,
     do_return_dists::Bool = false, # dangerous for memory if true
     do_return_align::Bool = false,
     get_hit_loci::Bool = false,
 
-    dist_vec = Float64[], result_align_vec = [], hit_loci_vec = Int[],
+    dist_vec = Float64[], result_align_vec = AlignResult[], hit_loci_vec = Int[],
     genome_pos::Int = 0, resultVec::Vector{FASTA.Record} = FASTA.Record[])
 
     curr_strobemer_freq::Vector{Float64} = zeros(2 << ((4*s)-1))
@@ -77,33 +79,14 @@ function StrobeGMA!(;
                 
                 # hit processing 
                 elseif !stop
-                    if CMI > goal_ind; goal_ind = CMI + windowsize - 1
-                        # alignment and matched unitrange
-                        left_ind, right_ind = max(CMI-buff,1), min(CMI+windowsize-1+buff,sequence_length)
-
-                        if do_align 
-                            aligned_obj = pairalign(SemiGlobalAlignment(),consensus_refseq,view(seq,left_ind:right_ind),score_model)
-                            if do_return_align; push!(result_align_vec, aligned_obj) end
-                            aligned_UnitRange = cigar_to_UnitRange(aligned_obj)
-                            seq_UnitRange = max(1, left_ind+first(aligned_UnitRange)-1):min(left_ind+last(aligned_UnitRange)-1, sequence_length)
-                        else
-                            seq_UnitRange = left_ind:right_ind
-                        end
-
-                        #create record
-                        rec = FASTA.Record(
-                            FASTA.identifier(record)*
-                                " | dist = "*string(round(currminim, digits = 2))*
-                                " | MatchPos = $seq_UnitRange"*
-                                " | GenomePos = $genome_pos"*
-                                " | Len = "*string(last(seq_UnitRange)-first(seq_UnitRange)),
-                            view(seq, seq_UnitRange)
-                        )
-
-                        if get_hit_loci; push!(hit_loci_vec, first(seq_UnitRange)+genome_pos) end 
-                        push!(resultVec, rec)
+                    stop = true
+                    CMI += 1
+                    if CMI > goal_ind
+                        goal_ind = CMI + windowsize - 1
+                        process_hit!(CMI,buff,windowsize,sequence_length,score_threshold,
+                            do_align,seq,consensus_refseq,score_model,do_return_align,
+                            result_align_vec,get_hit_loci,hit_loci_vec,genome_pos,resultVec)
                         currminim = kmerDist
-                        stop = true
                     end
                 end
             end
@@ -123,6 +106,7 @@ end
         KmerDistThr::Union{Int64, Float64} = 30,
         buffer::Int64 = 50,
         do_align::Bool = true,
+        align_score_thr::Int = 0
         do_return_dists::Bool = false,
         do_return_hit_loci::Bool = false,
         do_return_align::Bool = false,
@@ -135,7 +119,8 @@ The function uses the same arguments and returns the same outputs as `KmerGMA.fi
 """
 function Strobemer_findGenes(; genome_path::String, ref_path::String,
     s::Int = 2, w_min::Int = 3, w_max::Int = 5, q::Int = 5,
-    KmerDistThr::Union{Int64, Float64} = 30, buffer::Int64 = 50, do_align::Bool = true,
+    KmerDistThr::Union{Int64, Float64} = 30, buffer::Int64 = 50,
+    do_align::Bool = true, align_score_thr::Int = 0,
     do_return_dists::Bool = false, do_return_hit_loci::Bool = false, do_return_align::Bool = false,
     verbose::Bool = true)
 
@@ -143,7 +128,7 @@ function Strobemer_findGenes(; genome_path::String, ref_path::String,
         s=s, w_min = w_min, w_max = w_max, q = q)
     
     hit_vector = FASTX.FASTA.Record[]
-    dist_vec, hit_loci_vec, alignment_vec = Float64[], Int[], []  
+    dist_vec, hit_loci_vec, alignment_vec = Float64[], Int[], AlignResult[]  
     cumulative_length_in_genome = 0
 
     if verbose; @info "initializing iteration..." end 
@@ -152,6 +137,8 @@ function Strobemer_findGenes(; genome_path::String, ref_path::String,
         s = s, w_min = w_min, w_max = w_max, q = q,
         windowsize = windowsize, thr = KmerDistThr, ScaleFactor = 1/(w_max+s-1),
         buff = buffer,
+
+        score_threshold = align_score_thr,
 
         do_align = do_align, do_return_dists = do_return_dists,
         do_return_align = do_return_align, get_hit_loci = do_return_hit_loci,
@@ -172,26 +159,3 @@ function Strobemer_findGenes(; genome_path::String, ref_path::String,
 end
 
 export Strobemer_findGenes
-
-"""
-res= FASTA.Record[]
-distvec = Float64[]
-refVec, ws, cons = gen_ref_ws_cons("test/Alp_V_ref.fasta", 6)
-@time ac_gma_testing!(genome_path = "test/Loci.fasta",
-    refVec = refVec, consensus_refseq = cons, resultVec = res,
-    do_return_dists = true, dist_vec = distvec, do_align = false)
-
-plot!(distvec)
-
-
-@time a = findGenes_cluster_mode(genome_path = "benchmark/Seqs/Human_IGHV_locus.fasta",
-    ref_path = "benchmark/Seqs/References/humans.fasta", do_return_dists = true)
-
-plot(a[2])
-
-@time a = Strobemer_findGenes(genome_path = "benchmark/Seqs/Human_IGHV_locus.fasta",
-    ref_path = "benchmark/Seqs/References/humans.fasta")
-# the current example is ab 3 times slower unoptimized than kmergma
-write_results(a[1], "strobe_hum_hits.fasta")
-plot(a[2])
-"""

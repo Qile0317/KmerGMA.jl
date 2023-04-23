@@ -1,5 +1,6 @@
 using BioSequences, FASTX, Distances, BioAlignments, Random, StaticArrays
 
+# alot of the code would be cleaner if classes were used but classes are unfortunately very slow
 function ac_gma_testing!(;
     genome_path::String,
     refVec::Vector{Float64},
@@ -11,7 +12,6 @@ function ac_gma_testing!(;
     mask::UInt64 = unsigned(4095), 
     Nt_bits::DnaBits = NUCLEOTIDE_BITS,
     ScaleFactor::Float64 = 0.166666666666666666666666666666666666666666666667,
-    do_overlap::Bool = false,
     do_align::Bool = true,
     result_align_vec::Vector{AlignResult} = AlignResult[],
     gap_open_score::Int = -69,
@@ -27,8 +27,6 @@ function ac_gma_testing!(;
     curr_kmer_freq = zeros(Int, 2 << ((2*k)-1)) # seems like MVector is slower
     score_model = AffineGapScoreModel(EDNAFULL, gap_open = gap_open_score, gap_extend = gap_extend_score)
     initial_scale_factor::Float64 = ScaleFactor * 0.5
-    prev_seq_suffix = dna""
-    prev_suffix_len = 0
     
     open(FASTX.FASTA.Reader, genome_path) do reader 
         for record in reader
@@ -37,18 +35,9 @@ function ac_gma_testing!(;
             seq::Seq =  getSeq(record)
             
             if sequence_length < windowsize
-                if do_overlap
-                    prev_seq_suffix = seq
-                    prev_suffix_len = sequence_length
-                end
                 continue
             end 
-
-            if do_overlap
-                seq = prev_seq_suffix * seq
-                sequence_length += windowsize - 1
-            end 
-
+            
             #initial operations for the first window  
             fill!(curr_kmer_freq, 0)
             kmer_count!(str = view(seq, 1:windowsize), str_len = windowsize,
@@ -93,28 +82,28 @@ function ac_gma_testing!(;
                 if kmerDist < thr
                     if kmerDist < currminim
                         currminim = kmerDist
-                        CMI = i_left + 1 
+                        CMI = i_left
                         stop = false
                     end
                
                 # hit processing 
-                elseif !stop; stop = true
+                elseif !stop
+                    stop = true
+                    CMI += 1
                     if CMI > goal_ind
                         goal_ind = CMI + windowsize - 1
                         seq_UnitRange = (max(CMI - buff, 1)):(min(CMI + windowsize - 1 + buff, sequence_length))
-                        if do_align;
+                        if do_align
                             seq_UnitRange = align_unitrange(
                                 seq, seq_UnitRange, consensus_refseq, windowsize, sequence_length, score_model, do_return_align, result_align_vec)
                         end
-                        append_hit!(resultVec, record, seq, do_overlap, prev_suffix_len, currminim, seq_UnitRange, genome_pos)
+                        append_hit!(resultVec, record, seq, false, 0, currminim, seq_UnitRange, genome_pos)
                         if get_hit_loci; push!(hit_loci_vec, first(seq_UnitRange) + genome_pos) end
                         currminim = kmerDist
                     end
                 end
             end
             genome_pos += sequence_length
-            prev_seq_suffix = seq[end-windowsize+2:end]
-            prev_suffix_len = windowsize - 1
         end
     end
 end
@@ -126,18 +115,9 @@ export ac_gma_testing!
 using BenchmarkTools
 RV, ws, cons_seq = gen_ref_ws_cons(tf, 6)
 res = FASTA.Record[]
-ntbits = Dict{BioSequences.DNA, UInt}(
-    DNA_A => unsigned(0),
-    DNA_C => unsigned(1),
-    DNA_G => unsigned(2),
-    DNA_T => unsigned(3),
-    DNA_N => unsigned(3),
-    DNA_K => unsigned(3),
-    DNA_W => unsigned(3),
-    DNA_Gap => unsigned(3)
-) 
-@time ac_gma_testing!(genome_path = test_mini_genome,
-    refVec = RV, consensus_refseq = cons_seq, Nt_bits = ntbits,
-    windowsize = ws, thr = 30, do_align = false, do_overlap = true,
-    resultVec = res) # during testing it said there were DNA_K, W, S, and DNA_Gap but there weren't???
-    """
+@benchmark ac_gma_testing!(genome_path = test_mini_genome,
+    refVec = RV, consensus_refseq = cons_seq,
+    windowsize = ws, thr = 30, do_align = false, #do_overlap = false,
+    resultVec = res)
+    """ 
+# looks like appending sequences for the overlap was super slow as expected
