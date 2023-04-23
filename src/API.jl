@@ -78,7 +78,6 @@ function findGenes(; genome_path::String, ref_path::String,
     
     hit_vector = FASTX.FASTA.Record[]
     dist_vec, hit_loci_vec, alignment_vec = Float64[], Int[], AlignResult[]  
-    cumulative_length_in_genome = 0
 
     if verbose; @info "initializing iteration..." end 
     ac_gma_testing!(
@@ -91,7 +90,7 @@ function findGenes(; genome_path::String, ref_path::String,
 
         dist_vec = dist_vec,
         result_align_vec = alignment_vec,
-        hit_loci_vec = hit_loci_vec, genome_pos = cumulative_length_in_genome,
+        hit_loci_vec = hit_loci_vec,
         resultVec = hit_vector)
 
     if verbose; info_str = "genome mining completed successfully, returning vector of: vector of hits" end 

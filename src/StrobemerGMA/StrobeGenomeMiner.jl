@@ -14,7 +14,7 @@ function StrobeGMA!(;
 
     buff::Int64 = 50,
     do_align::Bool = true,
-    score_model::AffineGapScoreModel{Int64} = AffineGapScoreModel(EDNAFULL, gap_open=-69, gap_extend=-69),
+    score_model::AffineGapScoreModel{Int64} = AffineGapScoreModel(EDNAFULL, gap_open=-69, gap_extend=-5),
     score_threshold::Int = 0,
     do_return_dists::Bool = false, # dangerous for memory if true
     do_return_align::Bool = false,
