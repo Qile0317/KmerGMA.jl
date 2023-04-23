@@ -80,12 +80,12 @@ end
     ))
 end
 
-@inline function process_hit!(
+@inline function process_hit!(record::FASTA.Record, currminim::Float64,
     CMI::Int, buff::Int, windowsize::Int, sequence_length::Int,
     score_threshold::Int, do_align::Bool, seq::Seq, consensus_refseq::Seq,
-    score_model, do_return_align::Bool, result_align_vec::Bool,
-    get_hit_loci::Bool, hit_loci_vec::Vector{Int}, genome_pos::Int,
-    resultVec::Vector{FASTA.Record}
+    score_model::AffineGapScoreModel{Int}, do_return_align::Bool, 
+    result_align_vec::Vector{AlignResult},get_hit_loci::Bool, hit_loci_vec::Vector{Int},
+    genome_pos::Int,resultVec::Vector{FASTA.Record}
 )
     seq_UnitRange = (max(CMI-buff,1)):(min(CMI+windowsize-1+buff,sequence_length))
     if do_align

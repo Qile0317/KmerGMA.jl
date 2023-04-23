@@ -19,12 +19,12 @@ function ac_gma_testing!(;
     do_return_dists::Bool = false, dist_vec = Float64[],
     do_return_align::Bool = false,
     get_hit_loci::Bool = false,
-    hit_loci_vec = Int[],
-    genome_pos::Int = 0,
+    hit_loci_vec::Vector{Int} = Int[],
     resultVec::Vector{FASTA.Record} = FASTA.Record[])
     
+    genome_pos::Int = 0
     refVec = SVector{2 << ((2*k)-1)}(refVec) 
-    curr_kmer_freq = zeros(Int, 2 << ((2*k)-1)) # seems like MVector is slower
+    curr_kmer_freq = zeros(Int, 2 << ((2*k)-1)) # seems like MVector is slower?
     score_model = AffineGapScoreModel(EDNAFULL, gap_open = gap_open_score, gap_extend = gap_extend_score)
     initial_scale_factor::Float64 = ScaleFactor * 0.5
     
@@ -32,7 +32,7 @@ function ac_gma_testing!(;
         for record in reader
 
             sequence_length = FASTX.FASTA.seqsize(record)
-            seq::Seq =  getSeq(record)
+            seq::Seq = getSeq(record)
             
             if sequence_length < windowsize
                 continue

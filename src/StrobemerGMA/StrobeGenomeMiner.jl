@@ -39,7 +39,6 @@ function StrobeGMA!(;
             fill!(curr_strobemer_freq, 0)
             ungapped_strobe_2_mer_count!(view(seq, 1:windowsize), curr_strobemer_freq,
                 s, w_min, w_max, q)
-            #display(plot(curr_strobemer_freq))
 
             kmerDist = (1/(2*k))*Distances.sqeuclidean(refVec, curr_strobemer_freq)
 
@@ -83,7 +82,7 @@ function StrobeGMA!(;
                     CMI += 1
                     if CMI > goal_ind
                         goal_ind = CMI + windowsize - 1
-                        process_hit!(CMI,buff,windowsize,sequence_length,score_threshold,
+                        process_hit!(record,currminim,CMI,buff,windowsize,sequence_length,score_threshold,
                             do_align,seq,consensus_refseq,score_model,do_return_align,
                             result_align_vec,get_hit_loci,hit_loci_vec,genome_pos,resultVec)
                         currminim = kmerDist
