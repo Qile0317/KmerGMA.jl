@@ -98,7 +98,7 @@ using BioSequences, FASTX, Distances, BioAlignments, Random, StaticArrays
 end
 
 export record_KmerGMA!
-
+"""
 # function to take care of the actual threading from the API
 function multi_threaded_KmerGMA!(;
     genome_path::String,
@@ -141,7 +141,5 @@ function multi_threaded_KmerGMA!(;
 end
 
 #export threaded_KmerGMA!
-
+"""
 # so continually spawning threads destroys the memory, but a novel approach with channels is being implemented.
-
-# should use profiler for optimization

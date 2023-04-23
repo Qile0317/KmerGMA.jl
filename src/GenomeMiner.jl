@@ -1,6 +1,5 @@
 using BioSequences, FASTX, Distances, BioAlignments, Random, StaticArrays
 
-# single threaded version of the O(n) KmerGMA - i wonder if runtime can be improved if sequences can be read in as numbers
 function ac_gma_testing!(;
     genome_path::String,
     refVec::Vector{Float64},
@@ -12,27 +11,43 @@ function ac_gma_testing!(;
     mask::UInt64 = unsigned(4095), 
     Nt_bits::DnaBits = NUCLEOTIDE_BITS,
     ScaleFactor::Float64 = 0.166666666666666666666666666666666666666666666667,
-
-    do_align::Bool = true, result_align_vec = [],
+    do_overlap::Bool = false,
+    do_align::Bool = true,
+    result_align_vec::Vector{AlignResult} = AlignResult[],
     gap_open_score::Int = -69,
     gap_extend_score::Int = -1,
-    
     do_return_dists::Bool = false, dist_vec = Float64[],
     do_return_align::Bool = false,
     get_hit_loci::Bool = false,
     hit_loci_vec = Int[],
-    genome_pos::Int = 0, resultVec::Vector{FASTA.Record} = FASTA.Record[])
+    genome_pos::Int = 0,
+    resultVec::Vector{FASTA.Record} = FASTA.Record[])
     
     refVec = SVector{2 << ((2*k)-1)}(refVec) 
     curr_kmer_freq = zeros(Int, 2 << ((2*k)-1)) # seems like MVector is slower
     score_model = AffineGapScoreModel(EDNAFULL, gap_open = gap_open_score, gap_extend = gap_extend_score)
     initial_scale_factor::Float64 = ScaleFactor * 0.5
+    prev_seq_suffix = dna""
+    prev_suffix_len = 0
     
     open(FASTX.FASTA.Reader, genome_path) do reader 
-        for record in reader; seq::Seq = getSeq(record)
+        for record in reader
 
-            sequence_length::Int = FASTX.FASTA.seqsize(record)
-            if sequence_length < windowsize; continue end
+            sequence_length = FASTX.FASTA.seqsize(record)
+            seq::Seq =  getSeq(record)
+            
+            if sequence_length < windowsize
+                if do_overlap
+                    prev_seq_suffix = seq
+                    prev_suffix_len = sequence_length
+                end
+                continue
+            end 
+
+            if do_overlap
+                seq = prev_seq_suffix * seq
+                sequence_length += windowsize - 1
+            end 
 
             #initial operations for the first window  
             fill!(curr_kmer_freq, 0)
@@ -85,42 +100,21 @@ function ac_gma_testing!(;
                 # hit processing 
                 elseif !stop; stop = true
                     if CMI > goal_ind
-
                         goal_ind = CMI + windowsize - 1
-                        left_ind, right_ind = max(CMI - buff, 1), min(CMI + windowsize - 1 + buff, sequence_length)
-                        seq_UnitRange = left_ind:right_ind
-
-                        if do_align 
-                            aligned_obj = pairalign(SemiGlobalAlignment(),
-                                view(consensus_refseq, 1:windowsize),
-                                view(seq, seq_UnitRange),
-                                score_model)
-
-                            if do_return_align; push!(result_align_vec, aligned_obj) end
-
-                            aligned_UnitRange = cigar_to_UnitRange(aligned_obj)
-                            seq_UnitRange = max(
-                                1, left_ind + first(aligned_UnitRange) - 1):min(
-                                    left_ind + last(aligned_UnitRange) - 1, sequence_length)
+                        seq_UnitRange = (max(CMI - buff, 1)):(min(CMI + windowsize - 1 + buff, sequence_length))
+                        if do_align;
+                            seq_UnitRange = align_unitrange(
+                                seq, seq_UnitRange, consensus_refseq, windowsize, sequence_length, score_model, do_return_align, result_align_vec)
                         end
-
-                        push!(resultVec, FASTA.Record(
-                            FASTA.identifier(record)*
-                                " | dist = "*string(round(currminim, digits = 2))*
-                                " | MatchPos = $seq_UnitRange"*
-                                " | GenomePos = $genome_pos"*
-                                " | Len = "*string(last(seq_UnitRange)-first(seq_UnitRange) + 1), 
-                            view(seq, seq_UnitRange)
-                        ))
-
-                        if get_hit_loci
-                            push!(hit_loci_vec, first(seq_UnitRange) + genome_pos)
-                        end
+                        append_hit!(resultVec, record, seq, do_overlap, prev_suffix_len, currminim, seq_UnitRange, genome_pos)
+                        if get_hit_loci; push!(hit_loci_vec, first(seq_UnitRange) + genome_pos) end
                         currminim = kmerDist
                     end
                 end
             end
             genome_pos += sequence_length
+            prev_seq_suffix = seq[end-windowsize+2:end]
+            prev_suffix_len = windowsize - 1
         end
     end
 end
@@ -128,3 +122,22 @@ end
 export ac_gma_testing!
 
 # should use profiler for optimization
+"""
+using BenchmarkTools
+RV, ws, cons_seq = gen_ref_ws_cons(tf, 6)
+res = FASTA.Record[]
+ntbits = Dict{BioSequences.DNA, UInt}(
+    DNA_A => unsigned(0),
+    DNA_C => unsigned(1),
+    DNA_G => unsigned(2),
+    DNA_T => unsigned(3),
+    DNA_N => unsigned(3),
+    DNA_K => unsigned(3),
+    DNA_W => unsigned(3),
+    DNA_Gap => unsigned(3)
+) 
+@time ac_gma_testing!(genome_path = test_mini_genome,
+    refVec = RV, consensus_refseq = cons_seq, Nt_bits = ntbits,
+    windowsize = ws, thr = 30, do_align = false, do_overlap = true,
+    resultVec = res) # during testing it said there were DNA_K, W, S, and DNA_Gap but there weren't???
+    """

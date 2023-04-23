@@ -174,13 +174,6 @@ end
 export Strobemer_findGenes
 
 """
-# old testing code
-a = sgma(genome_path = "test/Loci.fasta", ref_path = "test/Alp_V_ref.fasta",
-    s = 2, w_min = 3, w_max = 5, q = 5, KmerDistThr = 16,
-    do_return_dists = true)
-
-plot!(a[2])
-
 res= FASTA.Record[]
 distvec = Float64[]
 refVec, ws, cons = gen_ref_ws_cons("test/Alp_V_ref.fasta", 6)

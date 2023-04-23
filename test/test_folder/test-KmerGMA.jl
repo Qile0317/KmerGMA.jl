@@ -143,10 +143,16 @@ end
             ) == 501:789
         end
     end
+
+    @testset "append_hit!" begin
+        res = FASTA.Record[]
+        append_hit!(res, FASTA.Record("foo", test_seq), test_seq,false,5,69.1,2:5,3)
+        @test res[1] == FASTA.Record("foo | dist = 69.1 | MatchPos = 2:5 | GenomePos = 3 | Len = 4", dna"TGCA") 
+    end
 end
 
 @testset "RSS.jl" begin # UNFINISHED
-    rss_align = Align_RSS(test_seq*HumanRSSV*test_seq, HumanRSSV)
+    rss_align = Align_RSS(view(test_seq*HumanRSSV*test_seq, 1:44), HumanRSSV)
     @test cigar(rss_align.aln.a.aln) == "8D28=8D"
 
     @test RSS_dist(HumanRSSV, HumanRSSV) == 0

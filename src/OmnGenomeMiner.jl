@@ -18,7 +18,7 @@ function Omn_KmerGMA!(;
     Nt_bits::Dict{DNA, UInt64} = NUCLEOTIDE_BITS,
 
     align_hits::Bool = true,
-    align_vec::Vector{SubAlignResult} = SubAlignResult[],
+    align_vec::Vector{AlignResult} = AlignResult[],
     gap_open_score::Int = -200,
     gap_extend_score::Int = -1,
 
@@ -150,7 +150,7 @@ function Omn_KmerGMA!(;
 
                                 if get_hit_loci; push!(hit_loci_vec, first(seq_UnitRange)+genome_pos) end
                                 prev_hit_range = seq_UnitRange # prev_hit_range = min(first(seq_UnitRange), first(prev_hit_range)):max(last(seq_UnitRange), last(prev_hit_range)) # could be even more/less conservative if wanted
-                                curr_mins[ind] = kmerDist 
+                                @inbounds curr_mins[ind] = kmerDist 
                             end
                         end
                     end
