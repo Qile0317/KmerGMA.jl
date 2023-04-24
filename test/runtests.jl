@@ -1,7 +1,7 @@
 using Test, BioSequences, FASTX, Random, BioAlignments, Distances, StaticArrays
 
 # for devs: if testing the script on your own machine, set the following variable to true. Otherwise must set to false when pushing
-test_locally = true
+test_locally = false
 
 # testing fasta files
 tf = "fasta_files/Alp_V_ref.fasta"

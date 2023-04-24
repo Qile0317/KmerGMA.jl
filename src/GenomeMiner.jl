@@ -1,6 +1,6 @@
 using BioSequences, FASTX, Distances, BioAlignments, Random, StaticArrays
 
-# alot of the code would be cleaner if classes were used but classes are unfortunately very slow
+# code would be cleaner if classes were used but classes are unfortunately slower
 function ac_gma_testing!(;
     genome_path::String,
     refVec::Vector{Float64},
@@ -109,15 +109,3 @@ function ac_gma_testing!(;
 end
 
 export ac_gma_testing!
-
-# should use profiler for optimization
-"""
-using BenchmarkTools
-RV, ws, cons_seq = gen_ref_ws_cons(tf, 6)
-res = FASTA.Record[]
-@benchmark ac_gma_testing!(genome_path = test_mini_genome,
-    refVec = RV, consensus_refseq = cons_seq,
-    windowsize = ws, thr = 30, do_align = false, #do_overlap = false,
-    resultVec = res)
-    """ 
-# looks like appending sequences for the overlap was super slow as expected
